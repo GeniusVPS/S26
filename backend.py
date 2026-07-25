@@ -1,20 +1,88 @@
 #!/usr/bin/env python3
 import sqlite3
-import os
+import os, json, subprocess, time
 from datetime import datetime, timedelta
 from flask import Flask, jsonify, request, send_from_directory
 
 app = Flask(__name__)
 DB_PATH = os.path.expanduser("~/stock-system/news.db")
+CONFIG_PATH = os.path.expanduser("~/stock-system/config.json")
 
 def get_db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
 
+def load_config():
+    try:
+        with open(CONFIG_PATH) as f:
+            return json.load(f)
+    except:
+        return {}
+
+def save_config(cfg):
+    with open(CONFIG_PATH, 'w') as f:
+        json.dump(cfg, f, indent=2, ensure_ascii=False)
+
 @app.route("/")
 def index():
     return send_from_directory(".", "index.html")
+
+@app.route("/settings")
+def settings():
+    return send_from_directory(".", "settings.html")
+
+@app.route("/api/config", methods=["GET", "POST"])
+def api_config():
+    if request.method == "POST":
+        data = request.get_json()
+        # Merge with existing config rather than full replace
+        existing = load_config()
+        for section in data:
+            if section in existing and isinstance(existing[section], dict) and isinstance(data[section], dict):
+                existing[section].update(data[section])
+            else:
+                existing[section] = data[section]
+        save_config(existing)
+        return jsonify({"status": "ok", "config": existing})
+    return jsonify(load_config())
+
+@app.route("/api/logs")
+def api_logs():
+    """Return latest fetch log entries"""
+    db = get_db()
+    rows = db.execute("""
+        SELECT source, fetched_count, new_count, fetched_at
+        FROM fetch_log ORDER BY id DESC LIMIT 20
+    """).fetchall()
+    db.close()
+    return jsonify([dict(r) for r in rows])
+
+@app.route("/api/status")
+def api_status():
+    """System health status"""
+    cfg = load_config()
+    # Check collector process
+    import subprocess
+    result = subprocess.run(
+        ["ps", "aux"], capture_output=True, text=True
+    )
+    collector_running = "collector.py" in result.stdout
+    last_log = {}
+    try:
+        db = get_db()
+        last = db.execute("SELECT * FROM fetch_log ORDER BY id DESC LIMIT 1").fetchone()
+        if last:
+            last_log = dict(last)
+        db.close()
+    except:
+        pass
+
+    return jsonify({
+        "collector_running": collector_running,
+        "last_fetch": last_log,
+        "config": cfg
+    })
 
 @app.route("/api/hot")
 def api_hot():

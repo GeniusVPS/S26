@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>S26 ⚙️ 系統設定</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #f0f2f5; color: #1a1a2e; padding: 20px;
+  max-width: 800px; margin: 0 auto;
+}
+h1 { font-size: 24px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+h1 span { background: #1a1a2e; color: #fff; font-size: 14px; padding: 2px 10px; border-radius: 10px; }
+.section {
+  background: #fff; border-radius: 12px; padding: 20px; margin-bottom: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+.section h2 { font-size: 16px; margin-bottom: 16px; color: #555; display: flex; align-items: center; gap: 8px; }
+.row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; }
+.row + .row { border-top: 1px solid #eee; }
+.row label { font-size: 14px; color: #333; flex: 1; }
+.row .desc { font-size: 12px; color: #999; margin-top: 2px; }
+.row input[type="number"] {
+  width: 80px; padding: 6px 10px; border: 1px solid #ddd; border-radius: 8px;
+  font-size: 14px; text-align: center;
+}
+.row input[type="text"] {
+  width: 160px; padding: 6px 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px;
+}
+.toggle {
+  position: relative; width: 44px; height: 24px; flex-shrink: 0;
+  background: #ccc; border-radius: 12px; cursor: pointer; transition: 0.2s;
+}
+.toggle.on { background: #4CAF50; }
+.toggle::after {
+  content: ''; position: absolute; width: 20px; height: 20px;
+  background: #fff; border-radius: 50%; top: 2px; left: 2px; transition: 0.2s;
+}
+.toggle.on::after { left: 22px; }
+
+.source-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; }
+.source-row + .source-row { border-top: 1px solid #eee; }
+.source-row .name { min-width: 70px; font-weight: 600; font-size: 13px; }
+.source-row .url { font-size: 12px; color: #888; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.source-row .status { font-size: 11px; padding: 2px 8px; border-radius: 10px; }
+.source-row .status.ok { background: #e8f5e9; color: #2e7d32; }
+.source-row .status.err { background: #fbe9e7; color: #c62828; }
+
+.btn {
+  padding: 12px 24px; border: none; border-radius: 10px; font-size: 15px;
+  cursor: pointer; font-weight: 600; transition: 0.2s;
+}
+.btn-primary { background: #1a1a2e; color: #fff; width: 100%; }
+.btn-primary:hover { opacity: 0.9; }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.toast {
+  position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+  background: #1a1a2e; color: #fff; padding: 12px 24px; border-radius: 10px;
+  font-size: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  opacity: 0; transition: 0.3s; pointer-events: none;
+}
+.toast.show { opacity: 1; }
+
+.section .badge {
+  display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 10px;
+  background: #e3f2fd; color: #1565c0; margin-left: 8px;
+}
+
+.watchlist-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.watchlist-item { display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: #f8f9fa; border-radius: 8px; font-size: 13px; }
+.watchlist-item input[type="checkbox"] { accent-color: #1a1a2e; }
+.watchlist-item .code { font-weight: 600; min-width: 80px; }
+.watchlist-item .name { color: #666; }
+
+.refresh-bar {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 16px; padding: 12px 16px; background: #e3f2fd;
+  border-radius: 10px; font-size: 13px; color: #1565c0;
+}
+.refresh-bar .val { font-weight: 600; }
+
+.loading { text-align: center; padding: 40px; color: #999; }
+
+@media (max-width: 600px) {
+  .watchlist-grid { grid-template-columns: 1fr; }
+  .row input[type="text"] { width: 120px; }
+}
+</style>
+</head>
+<body>
+<h1>⚙️ S26 設定</h1>
+
+<div class="refresh-bar">
+  <span>系統狀態</span>
+  <span id="statusText">檢查中...</span>
+</div>
+
+<!-- ============ 新聞來源 ============ -->
+<div class="section">
+  <h2>📡 新聞來源</h2>
+  <div id="sourcesContainer"><div class="loading">載入中...</div></div>
+  <div class="row" style="margin-top:12px">
+    <label>收集間隔 <span class="desc">每次 fetch 之間等待分鐘</span></label>
+    <input type="number" id="collectorInterval" min="1" max="120" value="30">
+  </div>
+</div>
+
+<!-- ============ 熱門門檻 ============ -->
+<div class="section">
+  <h2>🔥 分析設定</h2>
+  <div class="row">
+    <label>熱門時窗 <span class="desc">計算熱股的最近小時數</span></label>
+    <input type="number" id="hotWindow" min="1" max="168" value="24">
+  </div>
+  <div class="row">
+    <label>近期新聞時窗 <span class="desc">顯示最近新聞的小時數</span></label>
+    <input type="number" id="recentWindow" min="1" max="168" value="48">
+  </div>
+  <div class="row">
+    <label>熱門榜 Top N <span class="desc">顯示前 N 隻熱股</span></label>
+    <input type="number" id="topN" min="5" max="50" value="20">
+  </div>
+  <div class="row">
+    <label>最低提及次數 <span class="desc">忽略低於此次數的股票</span></label>
+    <input type="number" id="minMention" min="1" max="100" value="1">
+  </div>
+  <div class="row">
+    <label>NER 匹配模式</label>
+    <select id="nerMode" style="padding:6px 10px;border:1px solid #ddd;border-radius:8px;font-size:14px">
+      <option value="fuzzy">模糊匹配</option>
+      <option value="exact">精確匹配</option>
+    </select>
+  </div>
+</div>
+
+<!-- ============ 自選股 ============ -->
+<div class="section">
+  <h2>📊 觀察清單 <span class="badge" id="wlCount">0</span></h2>
+  <p style="font-size:12px;color:#999;margin-bottom:12px">剔走唔想追蹤嘅股票</p>
+  <div id="watchlistContainer"><div class="loading">載入中...</div></div>
+</div>
+
+<!-- ============ 儲存 ============ -->
+<button class="btn btn-primary" id="saveBtn" disabled onclick="saveConfig()">💾 儲存設定</button>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ====== Load config ======
+let config = null;
+
+async function loadConfig() {
+  const res = await fetch('/api/config');
+  config = await res.json();
+  render();
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function enableSave() {
+  document.getElementById('saveBtn').disabled = false;
+}
+
+// ====== Render ======
+function render() {
+  if (!config) return;
+
+  // --- Status ---
+  fetch('/api/status').then(r => r.json()).then(status => {
+    const t = document.getElementById('statusText');
+    if (status.collector_running) {
+      t.innerHTML = '🟢 Collector 運行中';
+    } else {
+      t.innerHTML = '🔴 Collector 未運行';
+    }
+    if (status.last_fetch && status.last_fetch.fetched_at) {
+      t.innerHTML += ` · 最後更新 ${status.last_fetch.fetched_at}`;
+    }
+  });
+
+  // --- Sources ---
+  const srcDiv = document.getElementById('sourcesContainer');
+  const sources = config.collector && config.collector.rss_sources ? config.collector.rss_sources : [];
+  srcDiv.innerHTML = sources.map((s, i) => {
+    const isOn = s.enabled !== false;
+    return `<div class="source-row">
+      <div class="name">${s.name}</div>
+      <div class="url">${s.url}</div>
+      <div class="status ${isOn ? 'ok' : 'err'}">${isOn ? '🟢' : '🔴'}</div>
+      <div class="toggle ${isOn ? 'on' : ''}" onclick="toggleSource(${i})"></div>
+    </div>`;
+  }).join('');
+
+  // --- Collector interval ---
+  const interval = config.collector && config.collector.interval_minutes;
+  if (interval) document.getElementById('collectorInterval').value = interval;
+
+  // --- Generate config ---
+  const gen = config.generate || {};
+  if (gen.hot_window_hours) document.getElementById('hotWindow').value = gen.hot_window_hours;
+  if (gen.recent_window_hours) document.getElementById('recentWindow').value = gen.recent_window_hours;
+  if (gen.top_n_hot) document.getElementById('topN').value = gen.top_n_hot;
+  if (config.stocks && config.stocks.min_mention_threshold) {
+    document.getElementById('minMention').value = config.stocks.min_mention_threshold;
+  }
+  if (config.ner && config.ner.keyword_matching) {
+    document.getElementById('nerMode').value = config.ner.keyword_matching;
+  }
+
+  // --- Watchlist ---
+  const wl = config.stocks && config.stocks.watchlist ? config.stocks.watchlist : [];
+  document.getElementById('wlCount').textContent = wl.length;
+  const wlDiv = document.getElementById('watchlistContainer');
+  wlDiv.innerHTML = '<div class="watchlist-grid">' + wl.map((s, i) =>
+    `<div class="watchlist-item">
+      <input type="checkbox" checked onchange="removeFromWatchlist(${i})">
+      <span class="code">${s.code}</span>
+      <span class="name">${s.name}</span>
+    </div>`
+  ).join('') + '</div>';
+
+  document.getElementById('saveBtn').disabled = false;
+}
+
+// ====== Interactions ======
+function toggleSource(i) {
+  const toggle = document.querySelectorAll('#sourcesContainer .toggle')[i];
+  toggle.classList.toggle('on');
+  const status = toggle.previousElementSibling || toggle.closest('.source-row').querySelector('.status');
+  if (toggle.classList.contains('on')) {
+    status.textContent = '🟢';
+    status.className = 'status ok';
+  } else {
+    status.textContent = '🔴';
+    status.className = 'status err';
+  }
+  enableSave();
+}
+
+function removeFromWatchlist(i) {
+  enableSave();
+}
+
+// ====== Save ======
+async function saveConfig() {
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ 儲存中...';
+
+  // Collect sources state
+  const sourceEls = document.querySelectorAll('#sourcesContainer .source-row');
+  const sources = Array.from(sourceEls).map((el, i) => {
+    const isOn = el.querySelector('.toggle').classList.contains('on');
+    return {
+      name: el.querySelector('.name').textContent,
+      url: el.querySelector('.url').textContent,
+      enabled: isOn
+    };
+  });
+
+  // Collect watchlist (checked ones)
+  const wlItems = document.querySelectorAll('#watchlistContainer .watchlist-item');
+  const watchlist = Array.from(wlItems).filter(item => {
+    return item.querySelector('input[type="checkbox"]').checked;
+  }).map(item => {
+    const parts = item.querySelectorAll('span');
+    return { code: parts[0].textContent, name: parts[1].textContent };
+  });
+
+  const payload = {
+    collector: {
+      interval_minutes: parseInt(document.getElementById('collectorInterval').value),
+      rss_sources: sources
+    },
+    generate: {
+      hot_window_hours: parseInt(document.getElementById('hotWindow').value),
+      recent_window_hours: parseInt(document.getElementById('recentWindow').value),
+      top_n_hot: parseInt(document.getElementById('topN').value)
+    },
+    stocks: {
+      watchlist: watchlist,
+      min_mention_threshold: parseInt(document.getElementById('minMention').value)
+    },
+    ner: {
+      keyword_matching: document.getElementById('nerMode').value
+    }
+  };
+
+  const res = await fetch('/api/config', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(payload)
+  });
+
+  if (res.ok) {
+    showToast('✅ 設定已儲存');
+    config = await res.json();
+  } else {
+    showToast('❌ 儲存失敗');
+  }
+
+  btn.disabled = false;
+  btn.textContent = '💾 儲存設定';
+}
+
+// ====== Init ======
+loadConfig();
+</script>
+</body>
+</html>

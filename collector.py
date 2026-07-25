@@ -3,21 +3,38 @@
 
 import json
 import time
+import os
 import sqlite3
 import feedparser
 import requests
 from datetime import datetime, timedelta
 
-# === RSS Sources ===
-RSS_SOURCES = {
-    "aastocks": "https://www.aastocks.com/tc/rss/default.aspx",
-    "yahoo": "https://finance.yahoo.com/news/rssindex",
-}
-
-GOOGLE_NEWS_URL = "https://news.google.com/rss/search?q=港股&hl=zh-TW&gl=HK&ceid=HK:zh-Hant"
-
+CONFIG_PATH = os.path.expanduser("~/stock-system/config.json")
 DB_PATH = "news.db"
 STOCKS_JSON = "stocks.json"
+
+def load_config():
+    try:
+        with open(CONFIG_PATH) as f:
+            return json.load(f)
+    except:
+        return {}
+
+def get_rss_sources():
+    cfg = load_config()
+    src_list = cfg.get("collector", {}).get("rss_sources", [
+        {"name": "rthk", "url": "https://news.rthk.hk/rthk/en/rss/finance.xml", "enabled": True},
+        {"name": "yahoo", "url": "https://finance.yahoo.com/news/rssindex", "enabled": True},
+    ])
+    return {s["name"]: s["url"] for s in src_list if s.get("enabled", True)}
+
+def get_interval():
+    cfg = load_config()
+    return cfg.get("collector", {}).get("interval_minutes", 30)
+
+def get_google_news_url():
+    cfg = load_config()
+    return cfg.get("collector", {}).get("google_news_url", "https://news.google.com/rss/search?q=港股&hl=zh-TW&gl=HK&ceid=HK:zh-Hant")
 
 
 def init_db(conn):
@@ -78,11 +95,11 @@ def fetch_rss(url):
         return []
 
 
-def fetch_google_news(keyword="港股"):
+def fetch_google_news(keyword="港股", rss_url=None):
     """Fetch Google News RSS with user-agent header."""
     try:
         headers = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"}
-        resp = requests.get(GOOGLE_NEWS_URL, headers=headers, timeout=15)
+        resp = requests.get(rss_url, headers=headers, timeout=15)
         resp.raise_for_status()
         feed = feedparser.parse(resp.text)
         articles = []
@@ -119,13 +136,30 @@ def extract_stocks(title, summary, stocks_map):
     return matched
 
 
+def normalize_date(date_str):
+    """统一日期格式为 ISO-8601"""
+    from email.utils import parsedate_to_datetime
+    if not date_str:
+        return datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+    try:
+        datetime.fromisoformat(date_str.replace("Z", "+00:00"))
+        return date_str
+    except (ValueError, TypeError):
+        pass
+    try:
+        dt = parsedate_to_datetime(date_str)
+        return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+    except (ValueError, TypeError):
+        return datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
 def save_article(conn, source, article, stocks_map):
     """Insert article with dedup by link. Match stocks if new."""
     c = conn.cursor()
     try:
         c.execute(
             "INSERT INTO news (source, title, link, summary, published_at) VALUES (?, ?, ?, ?, ?)",
-            (source, article["title"], article["link"], article["summary"], article["published_at"]),
+            (source, article["title"], article["link"], article["summary"], normalize_date(article["published_at"])),
         )
         news_id = c.lastrowid
         matched = extract_stocks(article["title"], article["summary"], stocks_map)
@@ -189,10 +223,14 @@ def main():
         round_num = 0
         while True:
             round_num += 1
+            # Reload config each round so live edits take effect
+            rss_sources = get_rss_sources()
+            interval = get_interval()
+            google_url = get_google_news_url()
             print(f"\n=== 第 {round_num} 輪抓取 ({datetime.now().strftime('%H:%M:%S')}) ===")
 
-            # Fetch from each source
-            for source_name, rss_url in RSS_SOURCES.items():
+            # Fetch from each RSS source
+            for source_name, rss_url in rss_sources.items():
                 print(f"\n📡 正在抓取 {source_name}...")
                 try:
                     articles = fetch_rss(rss_url)
@@ -213,7 +251,7 @@ def main():
             # Google News
             print(f"\n📡 正在抓取 Google News (港股)...")
             try:
-                articles = fetch_google_news("港股")
+                articles = fetch_google_news("港股", google_url)
                 new_count = 0
                 for art in articles:
                     is_new, matched = save_article(conn, "google", art, stocks_map)
@@ -230,8 +268,8 @@ def main():
 
             # Print hot list
             print_hot_list(conn)
-            print(f"\n⏰ 下次抓取: 2 分鐘後... (Ctrl+C 停止)")
-            time.sleep(120)
+            print(f"\n⏰ 下次抓取: {interval} 分鐘後... (Ctrl+C 停止)")
+            time.sleep(interval * 60)
 
     except KeyboardInterrupt:
         print("\n\n👋 已停止收集器。再見！")

@@ -1,0 +1,107 @@
+{
+  "collector": {
+    "interval_minutes": 30,
+    "rss_sources": [
+      {
+        "name": "rthk",
+        "url": "https://news.rthk.hk/rthk/en/rss/finance.xml",
+        "enabled": true
+      },
+      {
+        "name": "yahoo",
+        "url": "https://finance.yahoo.com/news/rssindex",
+        "enabled": true
+      }
+    ],
+    "google_news_url": "https://news.google.com/rss/search?q=港股&hl=zh-TW&gl=HK&ceid=HK:zh-Hant"
+  },
+  "stocks": {
+    "watchlist": [
+      {
+        "code": "0700.HK",
+        "name": "騰訊控股"
+      },
+      {
+        "code": "9988.HK",
+        "name": "阿里巴巴"
+      },
+      {
+        "code": "3690.HK",
+        "name": "美團點評"
+      },
+      {
+        "code": "9999.HK",
+        "name": "網易"
+      },
+      {
+        "code": "0388.HK",
+        "name": "香港交易所"
+      },
+      {
+        "code": "0005.HK",
+        "name": "滙豐控股"
+      },
+      {
+        "code": "1299.HK",
+        "name": "友邦保險"
+      },
+      {
+        "code": "1810.HK",
+        "name": "小米集團"
+      },
+      {
+        "code": "9618.HK",
+        "name": "京東集團"
+      },
+      {
+        "code": "1024.HK",
+        "name": "快手科技"
+      },
+      {
+        "code": "AAPL",
+        "name": "Apple"
+      },
+      {
+        "code": "MSFT",
+        "name": "Microsoft"
+      },
+      {
+        "code": "GOOGL",
+        "name": "Alphabet"
+      },
+      {
+        "code": "AMZN",
+        "name": "Amazon"
+      },
+      {
+        "code": "TSLA",
+        "name": "Tesla"
+      },
+      {
+        "code": "NVDA",
+        "name": "NVIDIA"
+      },
+      {
+        "code": "META",
+        "name": "Meta"
+      },
+      {
+        "code": "TSM",
+        "name": "TSMC"
+      },
+      {
+        "code": "BABA",
+        "name": "Alibaba US"
+      }
+    ],
+    "min_mention_threshold": 1
+  },
+  "ner": {
+    "keyword_matching": "fuzzy"
+  },
+  "generate": {
+    "hot_window_hours": 24,
+    "recent_window_hours": 48,
+    "top_n_hot": 20
+  }
+}
