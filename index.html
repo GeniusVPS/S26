@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>S26 股票熱榜</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #f5f5f5; --card: #ffffff; --text: #1a1a1a; --text2: #666666;
+  --accent: #2563eb; --border: #e5e5e5; --bar: #3b82f6;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f0f0f; --card: #1a1a1a; --text: #e5e5e5; --text2: #999999;
+    --accent: #60a5fa; --border: #333333; --bar: #60a5fa;
+  }
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); padding: 12px; max-width: 480px; margin: 0 auto; }
+h1 { font-size: 1.4rem; margin-bottom: 12px; }
+.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.range-btns { display: flex; gap: 4px; flex-wrap: wrap; }
+.range-btns button { border: 1px solid var(--border); background: var(--card); color: var(--text); border-radius: 6px; padding: 6px 10px; font-size: 0.8rem; cursor: pointer; }
+.range-btns button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.card { background: var(--card); border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+.stats { display: flex; gap: 12px; }
+.stat { flex: 1; text-align: center; }
+.stat .num { font-size: 1.8rem; font-weight: 700; color: var(--accent); }
+.stat .lbl { font-size: 0.75rem; color: var(--text2); }
+.bar-row { display: flex; align-items: center; margin-bottom: 8px; }
+.bar-label { width: 70px; font-size: 0.8rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar-track { flex: 1; height: 24px; background: var(--border); border-radius: 4px; overflow: hidden; }
+.bar-fill { height: 100%; background: var(--bar); border-radius: 4px; display: flex; align-items: center; padding-left: 6px; font-size: 0.7rem; color: #fff; min-width: 30px; }
+.news-item { padding: 10px 0; border-bottom: 1px solid var(--border); }
+.news-item:last-child { border-bottom: none; }
+.news-item a { color: var(--text); text-decoration: none; font-size: 0.9rem; font-weight: 500; }
+.news-item .meta { font-size: 0.7rem; color: var(--text2); margin-top: 4px; }
+.news-item .tags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+.news-item .tag { background: var(--accent); color: #fff; font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; }
+.collapsible { cursor: pointer; }
+.collapsible::after { content: " ▼"; font-size: 0.7rem; }
+.collapsible.collapsed::after { content: " ▶"; }
+.collapsible-content { max-height: 600px; overflow-y: auto; transition: max-height 0.3s; }
+.collapsible-content.hidden { max-height: 0; overflow: hidden; }
+.source-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.source-item { background: var(--border); padding: 6px 12px; border-radius: 8px; font-size: 0.8rem; }
+.chart-container { position: relative; height: 200px; }
+</style>
+</head>
+<body>
+
+<h1>📈 S26 股票熱榜</h1>
+<div class="header">
+  <div class="range-btns" id="rangeBtns">
+    <button data-hours="6">6h</button>
+    <button data-hours="12">12h</button>
+    <button data-hours="24" class="active">24h</button>
+    <button data-hours="48">48h</button>
+    <button data-hours="72">72h</button>
+  </div>
+</div>
+
+<div class="stats" id="stats">
+  <div class="stat"><div class="num" id="totalNews">-</div><div class="lbl">新聞總數</div></div>
+  <div class="stat"><div class="num" id="totalStocks">-</div><div class="lbl">股票關聯</div></div>
+</div>
+
+<div class="card">
+  <h3 style="margin-bottom:12px">🔥 熱門排行</h3>
+  <div id="hotList"></div>
+</div>
+
+<div class="card">
+  <h3 style="margin-bottom:12px">📊 提及趨勢</h3>
+  <div class="chart-container"><canvas id="timelineChart"></canvas></div>
+</div>
+
+<div class="card">
+  <h3 style="margin-bottom:12px">📡 新聞來源</h3>
+  <div class="source-list" id="sourceList"></div>
+</div>
+
+<div class="card">
+  <h3 style="margin-bottom:12px" class="collapsible" onclick="toggleNews()">📰 近期新聞</h3>
+  <div class="collapsible-content" id="newsList"></div>
+</div>
+
+<script>
+let currentHours = 24;
+let timelineChart = null;
+
+async function fetchJSON(url) {
+  const r = await fetch(url);
+  return r.json();
+}
+
+function toggleNews() {
+  const h = document.querySelector('.collapsible');
+  const c = document.querySelector('.collapsible-content');
+  h.classList.toggle('collapsed');
+  c.classList.toggle('hidden');
+}
+
+function renderHot(data) {
+  const el = document.getElementById('hotList');
+  if (!data.length) { el.innerHTML = '<div style="color:var(--text2);font-size:0.85rem">暫無數據</div>'; return; }
+  const max = Math.max(...data.map(d => d.count));
+  el.innerHTML = data.map(d => `
+    <div class="bar-row">
+      <div class="bar-label">${d.stock_code}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(d.count/max*100).toFixed(0)}%">${d.count}</div></div>
+      <div class="bar-label" style="width:auto;margin-left:8px;font-size:0.7rem;color:var(--text2)">${d.company_name}</div>
+    </div>
+  `).join('');
+}
+
+function renderTimeline(data) {
+  const ctx = document.getElementById('timelineChart');
+  if (timelineChart) timelineChart.destroy();
+  const labels = data.map(d => d.date);
+  const values = data.map(d => d.stock_mentions);
+  const style = getComputedStyle(document.documentElement);
+  const textColor = style.getPropertyValue('--text2').trim();
+  timelineChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets: [{ label: '股票提及數', data: values, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', fill: true, tension: 0.3, pointRadius: 4 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: textColor, font: { size: 10 } } }, y: { ticks: { color: textColor, font: { size: 10 } }, beginAtZero: true } } }
+  });
+}
+
+function renderSources(data) {
+  document.getElementById('sourceList').innerHTML = data.map(d => `<div class="source-item">${d.source} (${d.count})</div>`).join('');
+}
+
+function renderRecent(data) {
+  document.getElementById('newsList').innerHTML = data.map(d => {
+    const date = d.published_at ? new Date(d.published_at).toLocaleString() : '';
+    const tags = d.related_stocks.map(s => `<span class="tag">${s.stock_code}</span>`).join('');
+    return `<div class="news-item"><a href="${d.link}" target="_blank">${d.title}</a><div class="meta">${d.source} · ${date}</div>${tags ? '<div class="tags">' + tags + '</div>' : ''}</div>`;
+  }).join('');
+}
+
+async function load() {
+  const [hot, stats, timeline, recent] = await Promise.all([
+    fetchJSON(`/api/hot?hours=${currentHours}`),
+    fetchJSON('/api/stats'),
+    fetchJSON(`/api/timeline?hours=${currentHours}`),
+    fetchJSON('/api/recent?limit=20')
+  ]);
+  document.getElementById('totalNews').textContent = stats.total_news;
+  document.getElementById('totalStocks').textContent = stats.total_stocks;
+  renderHot(hot);
+  renderTimeline(timeline);
+  renderSources(stats.sources);
+  renderRecent(recent);
+}
+
+document.querySelectorAll('.range-btns button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.range-btns button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentHours = parseInt(btn.dataset.hours);
+    load();
+  });
+});
+
+load();
+</script>
+</body>
+</html>
