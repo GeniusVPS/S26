@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>📰 新聞瀏覽 - S26</title>
+<style>
+:root {
+  --bg: #f5f5f5; --card: #ffffff; --text: #1a1a1a; --text2: #666;
+  --accent: #2563eb; --border: #e5e5e5; --tag-bg: #dbeafe; --tag-text: #1d4ed8;
+  --input-bg: #fff;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f0f0f; --card: #1a1a1a; --text: #e5e5e5; --text2: #999;
+    --accent: #60a5fa; --border: #333; --tag-bg: #1e3a5f; --tag-text: #93c5fd;
+    --input-bg: #222;
+  }
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); padding: 12px; max-width: 680px; margin: 0 auto; }
+h1 { font-size: 1.3rem; margin-bottom: 12px; }
+.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.header h1 { margin-bottom: 0; }
+.back-btn { padding: 6px 12px; border: 1px solid var(--border); background: var(--card); color: var(--text); border-radius: 6px; text-decoration: none; font-size: 0.85rem; }
+.filter-bar { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.filter-bar button { border: 1px solid var(--border); background: var(--card); color: var(--text2); border-radius: 6px; padding: 6px 10px; font-size: 0.8rem; cursor: pointer; transition: all 0.15s; }
+.filter-bar button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.search-bar { display: flex; gap: 6px; margin-bottom: 10px; }
+.search-bar input { flex: 1; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--input-bg); color: var(--text); font-size: 0.85rem; }
+.search-bar select { padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--input-bg); color: var(--text); font-size: 0.85rem; }
+.filter-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 10px; }
+.filter-tag { display: inline-flex; align-items: center; gap: 4px; background: var(--tag-bg); color: var(--tag-text); font-size: 0.75rem; padding: 3px 8px; border-radius: 12px; cursor: pointer; }
+.filter-tag .close { cursor: pointer; font-size: 0.8rem; line-height: 1; }
+.news-item { padding: 12px; border-bottom: 1px solid var(--border); }
+.news-item:last-child { border-bottom: none; }
+.news-item a { color: var(--text); text-decoration: none; font-size: 0.9rem; line-height: 1.4; display: block; }
+.news-item a:hover { color: var(--accent); }
+.news-item .meta { display: flex; gap: 8px; align-items: center; font-size: 0.75rem; color: var(--text2); margin-top: 4px; flex-wrap: wrap; }
+.news-item .tags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+.news-item .tag { background: var(--tag-bg); color: var(--tag-text); font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; cursor: pointer; }
+.news-item .tag:hover { filter: brightness(1.2); }
+.source-badge { display: inline-block; font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; font-weight: 600; }
+.source-badge.yahoo { background: #600; color: #ff6; }
+.source-badge.google { background: #1a1a2e; color: #e4e4e4; }
+.source-badge.rthk { background: #003366; color: #fff; }
+.source-badge.default { background: var(--border); color: var(--text2); }
+.pagination { display: flex; justify-content: center; align-items: center; gap: 8px; margin: 16px 0; }
+.pagination button { padding: 6px 14px; border: 1px solid var(--border); background: var(--card); color: var(--text); border-radius: 6px; cursor: pointer; font-size: 0.85rem; }
+.pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
+.pagination .page-info { font-size: 0.8rem; color: var(--text2); }
+.loading { text-align: center; padding: 40px; color: var(--text2); font-size: 0.9rem; }
+.loading .spinner { display: inline-block; width: 24px; height: 24px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 8px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.result-count { font-size: 0.8rem; color: var(--text2); margin-bottom: 8px; }
+.empty { text-align: center; padding: 40px; color: var(--text2); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📰 新聞瀏覽</h1>
+  <a href="." class="back-btn">← 返回</a>
+</div>
+
+<!-- Time filter -->
+<div class="filter-bar" id="timeFilter">
+  <button data-hours="24" class="active">24小時</button>
+  <button data-hours="48">48小時</button>
+  <button data-hours="72">72小時</button>
+  <button data-hours="168">7天</button>
+  <button data-hours="0">全部</button>
+</div>
+
+<!-- Search + source -->
+<div class="search-bar">
+  <input type="text" id="searchInput" placeholder="搜尋新聞..." oninput="onSearch()">
+  <select id="sourceFilter" onchange="onSearch()">
+    <option value="">所有來源</option>
+  </select>
+</div>
+
+<!-- Active filters -->
+<div class="filter-tags" id="activeFilters"></div>
+
+<div class="result-count" id="resultCount"></div>
+
+<!-- News list -->
+<div id="newsContainer">
+  <div class="loading"><div class="spinner"></div><br>載入中...</div>
+</div>
+
+<!-- Pagination -->
+<div class="pagination" id="pagination">
+  <button id="prevBtn" onclick="goPage(-1)" disabled>← 上一頁</button>
+  <span class="page-info" id="pageInfo"></span>
+  <button id="nextBtn" onclick="goPage(1)" disabled>下一頁 →</button>
+</div>
+
+<script>
+const PER_PAGE = 50;
+let allNews = [];
+let filtered = [];
+let currentPage = 0;
+let hoursFilter = 24;
+let activeStockFilter = ''; // stock_code to filter by
+
+function loadData() {
+  fetch('data/all_news.json')
+    .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(data => {
+      allNews = data;
+      populateSourceFilter();
+      // Check URL param for stock filter
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('stock')) activeStockFilter = params.get('stock');
+      applyFilters();
+    })
+    .catch(err => {
+      document.getElementById('newsContainer').innerHTML =
+        '<div class="empty">❌ 無法載入新聞數據<br><small>' + err.message + '</small></div>';
+    });
+}
+
+function populateSourceFilter() {
+  const sel = document.getElementById('sourceFilter');
+  const sources = [...new Set(allNews.map(n => n.source).filter(Boolean))];
+  sources.sort().forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s; opt.textContent = s;
+    sel.appendChild(opt);
+  });
+}
+
+function applyFilters() {
+  const kw = document.getElementById('searchInput').value.toLowerCase().trim();
+  const source = document.getElementById('sourceFilter').value;
+
+  filtered = allNews.filter(n => {
+    // Time filter
+    if (hoursFilter > 0) {
+      const cutoff = new Date(Date.now() - hoursFilter * 3600000);
+      const pubDate = new Date(n.published_at);
+      if (pubDate < cutoff) return false;
+    }
+    // Source filter
+    if (source && n.source !== source) return false;
+    // Stock filter (from URL param or tag click)
+    if (activeStockFilter) {
+      if (!n.related_stocks || !n.related_stocks.some(s => s.stock_code === activeStockFilter)) return false;
+    }
+    // Keyword search
+    if (kw) {
+      const match = n.title.toLowerCase().includes(kw) ||
+        (n.summary && n.summary.toLowerCase().includes(kw));
+      if (!match) return false;
+    }
+    return true;
+  });
+
+  // Update filter tags
+  renderFilterTags();
+  currentPage = 0;
+  render();
+}
+
+function renderFilterTags() {
+  const container = document.getElementById('activeFilters');
+  let html = '';
+  if (activeStockFilter) {
+    const stock = allNews.flatMap(n => n.related_stocks || []).find(s => s.stock_code === activeStockFilter);
+    const name = stock ? stock.company : activeStockFilter;
+    html += `<span class="filter-tag">🏷️ ${name} <span class="close" onclick="clearStockFilter()">×</span></span>`;
+  }
+  container.innerHTML = html;
+}
+
+function clearStockFilter() {
+  activeStockFilter = '';
+  applyFilters();
+}
+
+function onSearch() {
+  applyFilters();
+}
+
+function formatDate(dateStr) {
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr || '';
+    const now = new Date();
+    const diff = now - d;
+    if (diff < 3600000) return Math.floor(diff / 60000) + '分鐘前';
+    if (diff < 86400000) return Math.floor(diff / 3600000) + '小時前';
+    return d.toLocaleDateString('zh-HK', { month: 'short', day: 'numeric' }) + ' ' +
+      d.toLocaleTimeString('zh-HK', { hour: '2-digit', minute: '2-digit' });
+  } catch(e) { return dateStr; }
+}
+
+function render() {
+  const container = document.getElementById('newsContainer');
+  const start = currentPage * PER_PAGE;
+  const end = Math.min(start + PER_PAGE, filtered.length);
+  const page = filtered.slice(start, end);
+
+  document.getElementById('resultCount').textContent =
+    `共 ${filtered.length} 篇新聞${filtered.length > 0 ? '' : ''}`;
+
+  if (page.length === 0) {
+    container.innerHTML = '<div class="empty">📭 沒有符合條件的新聞</div>';
+  } else {
+    let html = '';
+    page.forEach(n => {
+      const sourceClass = (n.source && n.source.toLowerCase().includes('yahoo')) ? 'yahoo' :
+        (n.source && n.source.toLowerCase().includes('google')) ? 'google' : 'default';
+      html += `<div class="news-item">`;
+      html += `<a href="${n.link}" target="_blank" rel="noopener">${n.title}</a>`;
+      html += `<div class="meta">`;
+      html += `<span class="source-badge ${sourceClass}">${n.source || '未知'}</span>`;
+      html += `<span>${formatDate(n.published_at)}</span>`;
+      html += `</div>`;
+      if (n.related_stocks && n.related_stocks.length > 0) {
+        html += `<div class="tags">`;
+        n.related_stocks.forEach(s => {
+          html += `<span class="tag" onclick="filterByStock('${s.stock_code}')">${s.company}</span>`;
+        });
+        html += `</div>`;
+      }
+      html += `</div>`;
+    });
+    container.innerHTML = html;
+  }
+
+  // Pagination
+  const totalPages = Math.ceil(filtered.length / PER_PAGE);
+  document.getElementById('pageInfo').textContent = `${currentPage + 1} / ${totalPages}`;
+  document.getElementById('prevBtn').disabled = currentPage <= 0;
+  document.getElementById('nextBtn').disabled = currentPage >= totalPages - 1;
+}
+
+function goPage(delta) {
+  const totalPages = Math.ceil(filtered.length / PER_PAGE);
+  const newPage = currentPage + delta;
+  if (newPage < 0 || newPage >= totalPages) return;
+  currentPage = newPage;
+  render();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function filterByStock(code) {
+  activeStockFilter = code;
+  // Update URL without reload
+  const url = new URL(window.location);
+  url.searchParams.set('stock', code);
+  window.history.replaceState({}, '', url);
+  applyFilters();
+}
+
+// Time filter click handlers
+document.getElementById('timeFilter').addEventListener('click', e => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  document.querySelectorAll('#timeFilter button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  hoursFilter = parseInt(btn.dataset.hours);
+  applyFilters();
+});
+
+// Initialise URL params
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  // If ?stock=xxx from GitHub Pages link
+  if (params.get('stock')) {
+    activeStockFilter = params.get('stock');
+  }
+  // If ?q=xxx
+  if (params.get('q')) {
+    document.getElementById('searchInput').value = params.get('q');
+  }
+})();
+
+loadData();
+</script>
+</body>
+</html>
