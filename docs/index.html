@@ -69,6 +69,11 @@ h1 { font-size: 1.4rem; margin-bottom: 12px; }
   <div class="stat"><div class="num" id="totalNews">-</div><div class="lbl">新聞總數</div></div>
   <div class="stat"><div class="num" id="totalStocks">-</div><div class="lbl">股票關聯</div></div>
 </div>
+<div class="stats" id="sentimentStats" style="margin-bottom:12px">
+  <div class="stat"><div class="num" id="positiveNews" style="color:#22c55e">-</div><div class="lbl">正面</div></div>
+  <div class="stat"><div class="num" id="neutralNews" style="color:#6b7280">-</div><div class="lbl">中性</div></div>
+  <div class="stat"><div class="num" id="negativeNews" style="color:#ef4444">-</div><div class="lbl">負面</div></div>
+</div>
 
 <div class="card">
   <h3 style="margin-bottom:12px">🔥 熱門排行</h3>
@@ -112,6 +117,11 @@ async function loadData() {
   if (stats) {
     document.getElementById('totalNews').textContent = stats.total_news.toLocaleString();
     document.getElementById('totalStocks').textContent = stats.total_stocks;
+    if (stats.sentiment) {
+      document.getElementById('positiveNews').textContent = stats.sentiment.positive;
+      document.getElementById('neutralNews').textContent = stats.sentiment.neutral;
+      document.getElementById('negativeNews').textContent = stats.sentiment.negative;
+    }
     const src = stats.sources || [];
     document.getElementById('sourceList').innerHTML = src.map(s =>
       `<div class="source-item">${s.source}: ${s.count}</div>`
