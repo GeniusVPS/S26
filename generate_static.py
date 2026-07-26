@@ -74,7 +74,26 @@ for article in recent_raw:
 with open(os.path.join(DATA_DIR, "recent.json"), "w") as f:
     json.dump(recent, f, ensure_ascii=False)
 
-# === 4. Stats ===
+# === 4a. All news (full dump for static browsing) ===
+all_news_raw = query("""
+    SELECT n.id, n.title, n.source, n.link, n.published_at
+    FROM news n
+    ORDER BY n.published_at DESC
+""")
+all_news = []
+for article in all_news_raw:
+    stocks = query(
+        "SELECT stock_code, company_name FROM news_stocks WHERE news_id = ?",
+        (article["id"],)
+    )
+    article["related_stocks"] = [{"stock_code": s["stock_code"], "company": s["company_name"]} for s in stocks]
+    article.pop("id", None)
+    all_news.append(article)
+
+with open(os.path.join(DATA_DIR, "all_news.json"), "w") as f:
+    json.dump(all_news, f, ensure_ascii=False)
+
+# === 4b. Stats ===
 total_news = query("SELECT COUNT(*) as cnt FROM news")[0]["cnt"]
 stocks_24h = query("SELECT COUNT(DISTINCT stock_code) as cnt FROM news_stocks WHERE matched_at >= ?", (since_hot,))[0]["cnt"]
 source_stats = query("SELECT source, COUNT(*) as count FROM news GROUP BY source ORDER BY count DESC")
@@ -101,13 +120,13 @@ if os.path.exists(dst_html):
 if copy_needed:
     import shutil
     shutil.copy2(src_html, dst_html)
-    # Replace Flask route link with localhost link for static hosting
+    # Replace Flask route link with static relative link
     with open(dst_html, 'r') as f:
         content = f.read()
-    content = content.replace('href="/news"', 'href="http://localhost:8501/news"')
+    content = content.replace('href="/news"', 'href="/S26/news.html"')
     with open(dst_html, 'w') as f:
         f.write(content)
-    print(f"  Copied index.html template → docs/index.html (news link → localhost)")
+    print(f"  Copied index.html template → docs/index.html (news link → static /S26/news.html)")
 else:
     print(f"  index.html unchanged, skipping copy")
 
@@ -120,6 +139,7 @@ print(f"✅ 靜態檔案已生成:")
 print(f"   {len(hot)} 隻股票 hot.json")
 print(f"   {len(recent)} 篇新聞 recent.json")
 print(f"   {len(timeline)} 個數據點 timeline.json")
+print(f"   {len(all_news)} 條新聞 all_news.json")
 print(f"   stats.json (總 {total_news} 條新聞)")
 
 # Git commit & push
