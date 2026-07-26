@@ -17,7 +17,7 @@ h1 span { background: #1a1a2e; color: #fff; font-size: 14px; padding: 2px 10px; 
   background: #fff; border-radius: 12px; padding: 20px; margin-bottom: 16px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
-.section h2 { font-size: 16px; margin-bottom: 16px; color: #555; display: flex; align-items: center; gap: 8px; }
+.section h2 { font-size: 16px; margin-bottom: 16px; color: #555; display: flex; align-items: center; gap: 8px; justify-content: space-between; }
 .row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; }
 .row + .row { border-top: 1px solid #eee; }
 .row label { font-size: 14px; color: #333; flex: 1; }
@@ -29,6 +29,8 @@ h1 span { background: #1a1a2e; color: #fff; font-size: 14px; padding: 2px 10px; 
 .row input[type="text"] {
   width: 160px; padding: 6px 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px;
 }
+
+/* Toggle Switch */
 .toggle {
   position: relative; width: 44px; height: 24px; flex-shrink: 0;
   background: #ccc; border-radius: 12px; cursor: pointer; transition: 0.2s;
@@ -40,13 +42,62 @@ h1 span { background: #1a1a2e; color: #fff; font-size: 14px; padding: 2px 10px; 
 }
 .toggle.on::after { left: 22px; }
 
-.source-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; }
+/* Source Row */
+.source-row {
+  display: flex; align-items: center; gap: 8px; padding: 8px 0; flex-wrap: wrap;
+}
 .source-row + .source-row { border-top: 1px solid #eee; }
-.source-row .name { min-width: 70px; font-weight: 600; font-size: 13px; }
-.source-row .url { font-size: 12px; color: #888; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.source-row .status { font-size: 11px; padding: 2px 8px; border-radius: 10px; }
-.source-row .status.ok { background: #e8f5e9; color: #2e7d32; }
-.source-row .status.err { background: #fbe9e7; color: #c62828; }
+.source-row .name { min-width: 60px; font-weight: 600; font-size: 13px; }
+.source-row .url { font-size: 12px; color: #888; flex: 1; min-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.source-row .source-status { font-size: 11px; padding: 2px 8px; border-radius: 10px; white-space: nowrap; }
+.source-row .source-status.ok { background: #e8f5e9; color: #2e7d32; }
+.source-row .source-status.err { background: #fbe9e7; color: #c62828; }
+.source-row .source-status.testing { background: #fff3e0; color: #e65100; }
+.source-row .source-actions { display: flex; gap: 4px; }
+.source-row .source-actions button {
+  width: 28px; height: 28px; border: none; border-radius: 6px;
+  cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center;
+  background: transparent; transition: 0.15s; color: #666;
+}
+.source-row .source-actions button:hover { background: #f0f0f0; }
+.source-row .source-actions button.test-btn:hover { color: #1976d2; }
+.source-row .source-actions button.edit-btn:hover { color: #f57c00; }
+.source-row .source-actions button.del-btn:hover { color: #d32f2f; }
+
+.add-source-row {
+  display: flex; gap: 8px; padding-top: 12px; flex-wrap: wrap; border-top: 1px dashed #ddd;
+}
+.add-source-row input {
+  padding: 8px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 13px;
+}
+.add-source-row input[type="text"] { flex: 1; min-width: 120px; }
+.add-source-btn {
+  padding: 8px 16px; border: none; border-radius: 8px; background: #1a1a2e; color: #fff;
+  font-size: 13px; cursor: pointer; font-weight: 600;
+}
+.add-source-btn:hover { opacity: 0.9; }
+
+/* Modal */
+.modal-overlay {
+  display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.4); z-index: 1000; justify-content: center; align-items: flex-start; padding-top: 80px;
+}
+.modal-overlay.show { display: flex; }
+.modal-box {
+  background: #fff; border-radius: 14px; width: 90%; max-width: 460px; padding: 24px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+}
+.modal-box h3 { font-size: 18px; margin-bottom: 16px; }
+.modal-box label { display: block; font-size: 13px; color: #666; margin-bottom: 4px; margin-top: 12px; }
+.modal-box input { width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 10px; font-size: 14px; }
+.modal-box input:focus { outline: none; border-color: #1a1a2e; }
+.modal-btns { display: flex; gap: 10px; margin-top: 20px; }
+.modal-btns button { flex: 1; padding: 10px 20px; border: none; border-radius: 10px; font-size: 14px; cursor: pointer; font-weight: 600; }
+.modal-btns .save { background: #1a1a2e; color: #fff; }
+.modal-btns .cancel { background: #eee; color: #666; }
+.modal-test-result { margin-top: 12px; padding: 10px 14px; border-radius: 8px; font-size: 13px; display: none; }
+.modal-test-result.ok { display: block; background: #e8f5e9; color: #2e7d32; }
+.modal-test-result.err { display: block; background: #fbe9e7; color: #c62828; }
 
 .btn {
   padding: 12px 24px; border: none; border-radius: 10px; font-size: 15px;
@@ -60,7 +111,7 @@ h1 span { background: #1a1a2e; color: #fff; font-size: 14px; padding: 2px 10px; 
   position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
   background: #1a1a2e; color: #fff; padding: 12px 24px; border-radius: 10px;
   font-size: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-  opacity: 0; transition: 0.3s; pointer-events: none;
+  opacity: 0; transition: 0.3s; pointer-events: none; z-index: 2000;
 }
 .toast.show { opacity: 1; }
 
@@ -87,6 +138,7 @@ h1 span { background: #1a1a2e; color: #fff; font-size: 14px; padding: 2px 10px; 
 @media (max-width: 600px) {
   .watchlist-grid { grid-template-columns: 1fr; }
   .row input[type="text"] { width: 120px; }
+  .source-row .url { min-width: 50px; }
 }
 </style>
 </head>
@@ -102,7 +154,12 @@ h1 span { background: #1a1a2e; color: #fff; font-size: 14px; padding: 2px 10px; 
 <div class="section">
   <h2>📡 新聞來源</h2>
   <div id="sourcesContainer"><div class="loading">載入中...</div></div>
-  <div class="row" style="margin-top:12px">
+  <div class="add-source-row">
+    <input type="text" id="newSourceName" placeholder="名稱，e.g. aastocks" style="max-width:120px">
+    <input type="text" id="newSourceUrl" placeholder="RSS URL..." style="flex:2">
+    <button class="add-source-btn" onclick="addSource()">➕ 新增</button>
+  </div>
+  <div class="row" style="margin-top:12px;border-top:1px solid #eee;">
     <label>收集間隔 <span class="desc">每次 fetch 之間等待分鐘</span></label>
     <input type="number" id="collectorInterval" min="1" max="120" value="30">
   </div>
@@ -146,12 +203,32 @@ h1 span { background: #1a1a2e; color: #fff; font-size: 14px; padding: 2px 10px; 
 <!-- ============ 儲存 ============ -->
 <button class="btn btn-primary" id="saveBtn" disabled onclick="saveConfig()">💾 儲存設定</button>
 
+<!-- ============  Toast  + Modal ============ -->
 <div class="toast" id="toast"></div>
 
-<script>
-// ====== Load config ======
-let config = null;
+<div class="modal-overlay" id="editModal">
+  <div class="modal-box">
+    <h3>✏️ 編輯來源</h3>
+    <label>來源名稱</label>
+    <input type="text" id="editName" placeholder="aastocks">
+    <label>RSS URL</label>
+    <input type="text" id="editUrl" placeholder="https://...">
+    <div id="editTestResult" class="modal-test-result"></div>
+    <div class="modal-btns">
+      <button class="cancel" onclick="closeModal()">取消</button>
+      <button class="test-btn" style="background:#1976d2;color:#fff;flex:0.5" onclick="testModalUrl()">🔍 測試</button>
+      <button class="save" id="modalSaveBtn" onclick="saveModal()">✅ 確定</button>
+    </div>
+    <input type="hidden" id="editIndex" value="-1">
+  </div>
+</div>
 
+<script>
+// ====== State ======
+let config = null;
+let sourceDirty = false;
+
+// ====== Load config ======
 async function loadConfig() {
   const res = await fetch('/api/config');
   config = await res.json();
@@ -169,6 +246,38 @@ function enableSave() {
   document.getElementById('saveBtn').disabled = false;
 }
 
+// ====== Source test ======
+async function testSourceUrl(url, statusEl) {
+  if (statusEl) {
+    statusEl.textContent = '⏳ 測試中...';
+    statusEl.className = 'source-status testing';
+  }
+  try {
+    const res = await fetch('/api/sources-test', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({url})
+    });
+    const data = await res.json();
+    if (data.ok) {
+      if (statusEl) {
+        statusEl.textContent = data.item_count > 0 ? `✅ ${data.item_count} 篇` : '✅ 有效 (0篇)';
+        statusEl.className = 'source-status ok';
+      }
+    } else {
+      if (statusEl) {
+        statusEl.textContent = `❌ ${data.error || '無效'}`;
+        statusEl.className = 'source-status err';
+      }
+    }
+  } catch(e) {
+    if (statusEl) {
+      statusEl.textContent = '❌ 連線錯誤';
+      statusEl.className = 'source-status err';
+    }
+  }
+}
+
 // ====== Render ======
 function render() {
   if (!config) return;
@@ -176,28 +285,39 @@ function render() {
   // --- Status ---
   fetch('/api/status').then(r => r.json()).then(status => {
     const t = document.getElementById('statusText');
+    let html = '';
     if (status.collector_running) {
-      t.innerHTML = '🟢 Collector 運行中';
+      html = '🟢 Collector 運行中';
     } else {
-      t.innerHTML = '🔴 Collector 未運行';
+      html = '🔴 Collector 未運行';
     }
     if (status.last_fetch && status.last_fetch.fetched_at) {
-      t.innerHTML += ` · 最後更新 ${status.last_fetch.fetched_at}`;
+      html += ` · 最後更新 ${status.last_fetch.fetched_at}`;
     }
+    t.innerHTML = html;
   });
 
   // --- Sources ---
   const srcDiv = document.getElementById('sourcesContainer');
   const sources = config.collector && config.collector.rss_sources ? config.collector.rss_sources : [];
-  srcDiv.innerHTML = sources.map((s, i) => {
-    const isOn = s.enabled !== false;
-    return `<div class="source-row">
-      <div class="name">${s.name}</div>
-      <div class="url">${s.url}</div>
-      <div class="status ${isOn ? 'ok' : 'err'}">${isOn ? '🟢' : '🔴'}</div>
-      <div class="toggle ${isOn ? 'on' : ''}" onclick="toggleSource(${i})"></div>
-    </div>`;
-  }).join('');
+  if (sources.length === 0) {
+    srcDiv.innerHTML = '<div style="text-align:center;padding:20px;color:#999">未有新聞來源，請在下方新增</div>';
+  } else {
+    srcDiv.innerHTML = sources.map((s, i) => {
+      const isOn = s.enabled !== false;
+      return `<div class="source-row" data-idx="${i}">
+        <div class="name">${s.name}</div>
+        <div class="url" title="${s.url}">${s.url}</div>
+        <div class="source-status ${isOn ? 'ok' : 'err'}">${isOn ? '🟢' : '🔴'}</div>
+        <div class="toggle ${isOn ? 'on' : ''}" onclick="toggleSource(this, ${i})"></div>
+        <div class="source-actions">
+          <button class="test-btn" title="測試 RSS" onclick="testSourceFromRow(${i})">🔍</button>
+          <button class="edit-btn" title="編輯" onclick="openEditModal(${i})">✏️</button>
+          <button class="del-btn" title="刪除" onclick="deleteSource(${i})">🗑️</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
 
   // --- Collector interval ---
   const interval = config.collector && config.collector.interval_minutes;
@@ -230,24 +350,121 @@ function render() {
   document.getElementById('saveBtn').disabled = false;
 }
 
-// ====== Interactions ======
-function toggleSource(i) {
-  const toggle = document.querySelectorAll('#sourcesContainer .toggle')[i];
-  toggle.classList.toggle('on');
-  const status = toggle.previousElementSibling || toggle.closest('.source-row').querySelector('.status');
-  if (toggle.classList.contains('on')) {
+// ====== Source interactions ======
+function toggleSource(el, i) {
+  el.classList.toggle('on');
+  const row = el.closest('.source-row');
+  const status = row.querySelector('.source-status');
+  if (el.classList.contains('on')) {
     status.textContent = '🟢';
-    status.className = 'status ok';
+    status.className = 'source-status ok';
   } else {
     status.textContent = '🔴';
-    status.className = 'status err';
+    status.className = 'source-status err';
   }
+  sourceDirty = true;
   enableSave();
+}
+
+async function testSourceFromRow(i) {
+  const sources = config.collector.rss_sources;
+  const url = sources[i].url;
+  const row = document.querySelector(`.source-row[data-idx="${i}"]`);
+  const statusEl = row ? row.querySelector('.source-status') : null;
+  await testSourceUrl(url, statusEl);
+}
+
+function addSource() {
+  const name = document.getElementById('newSourceName').value.trim();
+  const url = document.getElementById('newSourceUrl').value.trim();
+  if (!name || !url) { showToast('⚠️ 請輸入名稱和 URL'); return; }
+  if (!config.collector.rss_sources) config.collector.rss_sources = [];
+  config.collector.rss_sources.push({name, url, enabled: true});
+  document.getElementById('newSourceName').value = '';
+  document.getElementById('newSourceUrl').value = '';
+  sourceDirty = true;
+  render();
+  enableSave();
+  showToast(`✅ 已新增「${name}」`);
+}
+
+function deleteSource(i) {
+  if (!confirm(`確定刪除「${config.collector.rss_sources[i].name}」？`)) return;
+  config.collector.rss_sources.splice(i, 1);
+  sourceDirty = true;
+  render();
+  enableSave();
+  showToast('🗑️ 已刪除');
 }
 
 function removeFromWatchlist(i) {
   enableSave();
 }
+
+// ====== Modal ======
+function openEditModal(i) {
+  const s = config.collector.rss_sources[i];
+  document.getElementById('editIndex').value = i;
+  document.getElementById('editName').value = s.name;
+  document.getElementById('editUrl').value = s.url;
+  document.getElementById('editTestResult').className = 'modal-test-result';
+  document.getElementById('editTestResult').textContent = '';
+  document.getElementById('modalSaveBtn').textContent = '✅ 確定';
+  document.getElementById('modalSaveBtn').disabled = false;
+  document.getElementById('editModal').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('editModal').classList.remove('show');
+}
+
+async function testModalUrl() {
+  const url = document.getElementById('editUrl').value.trim();
+  if (!url) { showToast('⚠️ 請輸入 URL'); return; }
+  const resultEl = document.getElementById('editTestResult');
+  resultEl.textContent = '⏳ 測試中...';
+  resultEl.className = 'modal-test-result';
+  resultEl.style.display = 'block';
+  try {
+    const res = await fetch('/api/sources-test', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({url})
+    });
+    const data = await res.json();
+    if (data.ok) {
+      resultEl.textContent = data.item_count > 0
+        ? `✅ 有效！${data.item_count} 篇新聞 (${(data.size_bytes/1024).toFixed(1)}KB)`
+        : '⚠️ RSS 格式正確但 0 篇內容';
+      resultEl.className = 'modal-test-result ok';
+    } else {
+      resultEl.textContent = `❌ ${data.error || '無效 RSS'}`;
+      if (data.status) resultEl.textContent += ` (HTTP ${data.status})`;
+      resultEl.className = 'modal-test-result err';
+    }
+  } catch(e) {
+    resultEl.textContent = '❌ 連線錯誤';
+    resultEl.className = 'modal-test-result err';
+  }
+}
+
+function saveModal() {
+  const i = parseInt(document.getElementById('editIndex').value);
+  const name = document.getElementById('editName').value.trim();
+  const url = document.getElementById('editUrl').value.trim();
+  if (!name || !url) { showToast('⚠️ 名稱和 URL 不能為空'); return; }
+  config.collector.rss_sources[i] = {...config.collector.rss_sources[i], name, url};
+  sourceDirty = true;
+  closeModal();
+  render();
+  enableSave();
+  showToast('✅ 已更新');
+}
+
+// Close modal on overlay click
+document.getElementById('editModal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
 
 // ====== Save ======
 async function saveConfig() {
@@ -255,16 +472,19 @@ async function saveConfig() {
   btn.disabled = true;
   btn.textContent = '⏳ 儲存中...';
 
-  // Collect sources state
+  // Collect sources state from DOM (toggle state is visual-only)
   const sourceEls = document.querySelectorAll('#sourcesContainer .source-row');
-  const sources = Array.from(sourceEls).map((el, i) => {
-    const isOn = el.querySelector('.toggle').classList.contains('on');
-    return {
-      name: el.querySelector('.name').textContent,
-      url: el.querySelector('.url').textContent,
-      enabled: isOn
-    };
-  });
+  if (sourceEls.length > 0) {
+    const sources = Array.from(sourceEls).map((el, i) => {
+      const isOn = el.querySelector('.toggle').classList.contains('on');
+      return {
+        name: el.querySelector('.name').textContent,
+        url: el.querySelector('.url').textContent,
+        enabled: isOn
+      };
+    });
+    config.collector.rss_sources = sources;
+  }
 
   // Collect watchlist (checked ones)
   const wlItems = document.querySelectorAll('#watchlistContainer .watchlist-item');
@@ -278,7 +498,7 @@ async function saveConfig() {
   const payload = {
     collector: {
       interval_minutes: parseInt(document.getElementById('collectorInterval').value),
-      rss_sources: sources
+      rss_sources: config.collector.rss_sources || []
     },
     generate: {
       hot_window_hours: parseInt(document.getElementById('hotWindow').value),
@@ -303,6 +523,7 @@ async function saveConfig() {
   if (res.ok) {
     showToast('✅ 設定已儲存');
     config = await res.json();
+    sourceDirty = false;
   } else {
     showToast('❌ 儲存失敗');
   }

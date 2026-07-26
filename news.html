@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>S26 新聞瀏覽</title>
+<style>
+:root {
+  --bg: #f5f5f5; --card: #ffffff; --text: #1a1a1a; --text2: #666;
+  --accent: #2563eb; --border: #e5e5e5; --tag: #e8f0fe; --tag-text: #1a73e8;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f0f0f; --card: #1a1a1a; --text: #e5e5e5; --text2: #999;
+    --accent: #60a5fa; --border: #333; --tag: #1a237e; --tag-text: #90caf9;
+  }
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: var(--bg); color: var(--text); padding: 0; max-width: 480px; margin: 0 auto;
+  min-height: 100vh;
+}
+.top-bar {
+  position: sticky; top: 0; background: var(--card); padding: 10px 12px;
+  display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border); z-index: 10;
+}
+.top-bar a { color: var(--accent); text-decoration: none; font-size: 0.9rem; padding: 6px 10px; border-radius: 8px; }
+.top-bar a:hover { background: var(--tag); }
+.top-bar h1 { font-size: 1rem; flex: 1; }
+.filter-bar {
+  background: var(--card); padding: 10px 12px; border-bottom: 1px solid var(--border);
+  display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+}
+.filter-bar input, .filter-bar select {
+  padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px;
+  background: var(--bg); color: var(--text); font-size: 0.85rem; flex: 1; min-width: 80px;
+}
+.filter-bar .range-group {
+  display: flex; gap: 4px; flex: 2; min-width: 140px;
+}
+.filter-bar .range-btn {
+  padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px;
+  background: var(--card); color: var(--text2); font-size: 0.75rem; cursor: pointer;
+}
+.filter-bar .range-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.filter-row2 {
+  background: var(--card); padding: 0 12px 10px; display: flex; gap: 8px; flex-wrap: wrap;
+  align-items: center; border-bottom: 1px solid var(--border);
+}
+.filter-row2 input { flex: 2; }
+.filter-row2 .search-btn {
+  padding: 6px 14px; background: var(--accent); color: #fff; border: none; border-radius: 8px;
+  font-size: 0.85rem; cursor: pointer;
+}
+.filter-row2 .count-badge {
+  font-size: 0.75rem; color: var(--text2); margin-left: auto;
+}
+.news-item {
+  background: var(--card); padding: 12px 14px; border-bottom: 1px solid var(--border);
+}
+.news-item .title {
+  font-size: 0.95rem; line-height: 1.4; font-weight: 500; margin-bottom: 6px;
+}
+.news-item .title a { color: var(--text); text-decoration: none; }
+.news-item .title a:visited { color: var(--text2); }
+.news-item .meta {
+  display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 0.75rem; color: var(--text2);
+}
+.news-item .meta .source { font-weight: 600; color: var(--accent); }
+.news-item .meta .time { white-space: nowrap; }
+.news-item .stocks {
+  display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px;
+}
+.news-item .stocks .tag {
+  padding: 2px 8px; background: var(--tag); color: var(--tag-text);
+  border-radius: 10px; font-size: 0.7rem; font-weight: 500;
+  cursor: pointer;
+}
+.pagination {
+  display: flex; justify-content: center; gap: 8px; padding: 16px; align-items: center;
+}
+.pagination button {
+  padding: 8px 16px; border: 1px solid var(--border); border-radius: 8px;
+  background: var(--card); color: var(--text); cursor: pointer; font-size: 0.85rem;
+}
+.pagination button:disabled { opacity: 0.3; cursor: default; }
+.pagination .page-info { font-size: 0.85rem; color: var(--text2); }
+.loading { text-align: center; padding: 40px; color: var(--text2); }
+.error { text-align: center; padding: 40px; color: #e53935; }
+.no-results { text-align: center; padding: 40px; color: var(--text2); font-size: 0.9rem; }
+@media (min-width: 481px) {
+  body { max-width: 720px; }
+}
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <a href="/">‹ 返回</a>
+  <h1>📰 新聞瀏覽</h1>
+</div>
+
+<div class="filter-bar">
+  <div class="range-group" id="rangeBtns">
+    <button class="range-btn active" data-hours="24">24h</button>
+    <button class="range-btn" data-hours="48">48h</button>
+    <button class="range-btn" data-hours="72">72h</button>
+    <button class="range-btn" data-hours="168">7d</button>
+    <button class="range-btn" data-hours="0">全部</button>
+  </div>
+  <select id="sourceFilter">
+    <option value="">所有來源</option>
+  </select>
+  <select id="stockFilter">
+    <option value="">所有股票</option>
+  </select>
+</div>
+
+<div class="filter-row2">
+  <input type="text" id="searchInput" placeholder="🔍 搜尋關鍵字..." onkeydown="if(event.key==='Enter')search()">
+  <button class="search-btn" onclick="search()">搜尋</button>
+  <span class="count-badge" id="resultCount"></span>
+</div>
+
+<div id="newsContainer">
+  <div class="loading">⏳ 載入中...</div>
+</div>
+
+<div class="pagination" id="pagination">
+  <button id="prevBtn" onclick="goPage(-1)" disabled>‹ 上一頁</button>
+  <span class="page-info" id="pageInfo"></span>
+  <button id="nextBtn" onclick="goPage(1)" disabled>下一頁 ›</button>
+</div>
+
+<script>
+// ====== State ======
+let currentPage = 1;
+let currentParams = {};
+let totalPages = 0;
+let stockCache = [];
+let sourceCache = [];
+const PER_PAGE = 50;
+
+// ====== Init ======
+async function init() {
+  // Load sources & stocks for filter dropdowns
+  try {
+    const [srcRes, hotRes] = await Promise.all([
+      fetch('/api/sources'),
+      fetch('/api/hot?hours=336')  // 14d for full stock list
+    ]);
+    const sources = await srcRes.json();
+    const hotStocks = await hotRes.json();
+    sourceCache = sources;
+    stockCache = hotStocks;
+    populateFilters(sources, hotStocks);
+  } catch(e) {
+    console.error('Filter load error:', e);
+  }
+  // Set range click handlers
+  document.querySelectorAll('#rangeBtns .range-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#rangeBtns .range-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      search();
+    });
+  });
+  // Initial load
+  search();
+}
+
+function populateFilters(sources, stocks) {
+  const srcSel = document.getElementById('sourceFilter');
+  sourceCache.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s;
+    opt.textContent = s;
+    srcSel.appendChild(opt);
+  });
+  const stkSel = document.getElementById('stockFilter');
+  stockCache.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.stock_code;
+    opt.textContent = `${s.stock_code} ${s.company_name}`;
+    stkSel.appendChild(opt);
+  });
+}
+
+// ====== Search ======
+async function search(page) {
+  currentPage = page || 1;
+  const activeRange = document.querySelector('#rangeBtns .range-btn.active');
+  const hours = parseInt(activeRange?.dataset?.hours || 24);
+
+  const now = new Date();
+  let from = '';
+  if (hours > 0) {
+    const d = new Date(now.getTime() - hours * 3600000);
+    from = d.toISOString().split('.')[0] + 'Z';
+  }
+
+  const params = new URLSearchParams();
+  if (from) params.set('from', from);
+  const source = document.getElementById('sourceFilter').value;
+  if (source) params.set('source', source);
+  const stock = document.getElementById('stockFilter').value;
+  if (stock) params.set('stock', stock);
+  const q = document.getElementById('searchInput').value.trim();
+  if (q) params.set('q', q);
+  params.set('page', currentPage);
+  params.set('per_page', PER_PAGE);
+
+  currentParams = params;
+  document.getElementById('newsContainer').innerHTML = '<div class="loading">⏳ 載入中...</div>';
+
+  try {
+    const res = await fetch(`/api/news?${params}`);
+    const data = await res.json();
+    totalPages = data.total_pages || 0;
+    renderNews(data);
+    updatePagination();
+  } catch(e) {
+    document.getElementById('newsContainer').innerHTML = '<div class="error">❌ 載入失敗</div>';
+  }
+}
+
+function goPage(delta) {
+  search(currentPage + delta);
+}
+
+// ====== Render ======
+function renderNews(data) {
+  const container = document.getElementById('newsContainer');
+  const countEl = document.getElementById('resultCount');
+  
+  if (!data.data || data.data.length === 0) {
+    container.innerHTML = '<div class="no-results">📭 冇相關新聞</div>';
+    countEl.textContent = '';
+    return;
+  }
+
+  countEl.textContent = `共 ${data.total} 篇`;
+
+  container.innerHTML = data.data.map(item => {
+    const time = formatTime(item.published_at);
+    const stocks = item.related_stocks || [];
+    const sourceLabel = item.source || 'unknown';
+    // Truncate long titles
+    const title = item.title.length > 120 ? item.title.slice(0, 120) + '…' : item.title;
+    return `<div class="news-item">
+      <div class="title"><a href="${item.link}" target="_blank" rel="noopener">${escapeHtml(title)}</a></div>
+      <div class="meta">
+        <span class="source">${escapeHtml(sourceLabel)}</span>
+        <span class="time">${time}</span>
+      </div>
+      ${stocks.length > 0 ? `<div class="stocks">${stocks.map(s =>
+        `<span class="tag" onclick="filterStock('${s.stock_code}')">${s.stock_code}</span>`
+      ).join('')}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function updatePagination() {
+  document.getElementById('prevBtn').disabled = currentPage <= 1;
+  document.getElementById('nextBtn').disabled = currentPage >= totalPages;
+  document.getElementById('pageInfo').textContent = totalPages > 0
+    ? `第 ${currentPage}/${totalPages} 頁`
+    : '';
+}
+
+function filterStock(code) {
+  document.getElementById('stockFilter').value = code;
+  search();
+}
+
+// ====== Helpers ======
+function formatTime(dateStr) {
+  if (!dateStr) return '';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    const now = new Date();
+    const diff = now - d;
+    if (diff < 3600000) return `${Math.floor(diff/60000)}分鐘前`;
+    if (diff < 86400000) return `${Math.floor(diff/3600000)}小時前`;
+    return d.toLocaleString('zh-HK', {month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'});
+  } catch { return dateStr; }
+}
+
+function escapeHtml(text) {
+  const d = document.createElement('div');
+  d.textContent = text;
+  return d.innerHTML;
+}
+
+// ====== Init ======
+init();
+</script>
+</body>
+</html>

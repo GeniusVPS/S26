@@ -28,6 +28,11 @@ def save_config(cfg):
 def index():
     return send_from_directory(".", "index.html")
 
+@app.route("/news")
+def news_page():
+    return send_from_directory(".", "news.html")
+
+
 @app.route("/settings")
 def settings():
     return send_from_directory(".", "settings.html")
@@ -83,6 +88,15 @@ def api_status():
         "last_fetch": last_log,
         "config": cfg
     })
+
+@app.route("/api/sources")
+def api_sources_list():
+    """List distinct news sources"""
+    db = get_db()
+    rows = db.execute("SELECT DISTINCT source FROM news ORDER BY source").fetchall()
+    db.close()
+    return jsonify([r["source"] for r in rows])
+
 
 @app.route("/api/hot")
 def api_hot():
@@ -155,6 +169,133 @@ def api_timeline():
     """, (since,)).fetchall()
     db.close()
     return jsonify([dict(r) for r in rows])
+
+
+
+@app.route("/api/news")
+def api_news():
+    """Search/filter news with pagination"""
+    date_from = request.args.get("from", "")
+    date_to = request.args.get("to", "")
+    source = request.args.get("source", "")
+    stock_code = request.args.get("stock", "")
+    keyword = request.args.get("q", "")
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 50, type=int)
+    sort_dir = request.args.get("sort", "desc")
+    per_page = min(per_page, 200)
+    offset = (page - 1) * per_page
+
+    db = get_db()
+
+    where_clauses = []
+    params = []
+
+    if date_from:
+        where_clauses.append("n.published_at >= ?")
+        params.append(date_from)
+    if date_to:
+        where_clauses.append("n.published_at <= ?")
+        params.append(date_to + "T23:59:59Z")
+    if source:
+        where_clauses.append("n.source = ?")
+        params.append(source)
+    if stock_code:
+        where_clauses.append("s.stock_code = ?")
+        params.append(stock_code)
+    if keyword:
+        where_clauses.append("n.title LIKE ?")
+        params.append(f"%{keyword}%")
+
+    where_sql = " AND ".join(where_clauses) if where_clauses else "1=1"
+
+    # Count total (without stock filter to avoid subquery issues, handle separately)
+    if stock_code:
+        count_sql = f"""SELECT COUNT(DISTINCT n.id) FROM news n
+                      JOIN news_stocks s ON s.news_id = n.id
+                      WHERE {where_sql}"""
+    else:
+        count_sql = f"SELECT COUNT(*) FROM news n WHERE {where_sql}"
+
+    total = db.execute(count_sql, params).fetchone()[0]
+
+    # Fetch with stock filter join
+    if stock_code:
+        query = f"""SELECT n.id, n.title, n.source, n.link, n.published_at,
+                        GROUP_CONCAT(DISTINCT s2.stock_code || '|' || s2.company_name, ',') as stocks
+                     FROM news n
+                     JOIN news_stocks s ON s.news_id = n.id
+                     LEFT JOIN news_stocks s2 ON s2.news_id = n.id
+                     WHERE {where_sql}
+                     GROUP BY n.id
+                     ORDER BY n.published_at {sort_dir}
+                     LIMIT ? OFFSET ?"""
+    else:
+        query = f"""SELECT n.id, n.title, n.source, n.link, n.published_at,
+                        GROUP_CONCAT(s.stock_code || '|' || s.company_name, ',') as stocks
+                     FROM news n
+                     LEFT JOIN news_stocks s ON s.news_id = n.id
+                     WHERE {where_sql}
+                     GROUP BY n.id
+                     ORDER BY n.published_at {sort_dir}
+                     LIMIT ? OFFSET ?"""
+
+    rows = db.execute(query, params + [per_page, offset]).fetchall()
+    db.close()
+
+    result = []
+    for r in rows:
+        d = dict(r)
+        stocks_raw = d.pop("stocks", "") or ""
+        d["related_stocks"] = []
+        if stocks_raw:
+            for item in stocks_raw.split(","):
+                parts = item.split("|", 1)
+                if len(parts) == 2:
+                    d["related_stocks"].append({"stock_code": parts[0], "company_name": parts[1]})
+        result.append(d)
+
+    return jsonify({
+        "data": result,
+        "total": total,
+        "page": page,
+        "per_page": per_page,
+        "total_pages": (total + per_page - 1) // per_page if total > 0 else 0
+    })
+
+
+@app.route("/api/sources-test", methods=["POST"])
+def api_sources_test():
+    """Test if an RSS URL returns valid XML"""
+    data = request.get_json()
+    url = data.get("url", "")
+    if not url:
+        return jsonify({"ok": False, "error": "No URL provided"})
+    try:
+        import requests
+        resp = requests.get(url, timeout=10, headers={"User-Agent": "Mozilla/5.0"})
+        if resp.status_code != 200:
+            return jsonify({"ok": False, "status": resp.status_code, "error": f"HTTP {resp.status_code}"})
+        text = resp.text
+        if "<rss" in text[:2000] or "<feed" in text[:2000] or "<feed " in text[:2000]:
+            # Count items
+            import xml.etree.ElementTree as ET
+            try:
+                root = ET.fromstring(text)
+                # Handle both RSS 2.0 and Atom
+                channel = root.find("channel")
+                if channel is not None:
+                    items = len(channel.findall("item"))
+                else:
+                    items = len(root.findall("{http://www.w3.org/2005/Atom}entry"))
+                return jsonify({"ok": True, "url": url, "item_count": items, "size_bytes": len(text)})
+            except ET.ParseError as e:
+                return jsonify({"ok": True, "warning": "Valid RSS but XML parse error", "error": str(e)})
+        else:
+            return jsonify({"ok": False, "error": "Response is not RSS/Atom XML", "preview": text[:200]})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)})
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8501, debug=False)
