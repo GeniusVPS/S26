@@ -87,10 +87,30 @@ stats = {
 with open(os.path.join(DATA_DIR, "stats.json"), "w") as f:
     json.dump(stats, f, ensure_ascii=False)
 
-# === 5. Copy static index.html ===
-src_html = os.path.expanduser("~/stock-system/docs/index.html")
+# === 5. Copy index.html from main template ===
+src_html = os.path.expanduser("~/stock-system/index.html")
 dst_html = os.path.join(OUT_DIR, "index.html")
-# It's already at the right place if we put it in docs/
+
+# Check if template is newer than current static index
+copy_needed = True
+if os.path.exists(dst_html):
+    src_mtime = os.path.getmtime(src_html)
+    dst_mtime = os.path.getmtime(dst_html)
+    copy_needed = src_mtime > dst_mtime
+
+if copy_needed:
+    import shutil
+    shutil.copy2(src_html, dst_html)
+    # Replace Flask route link with localhost link for static hosting
+    with open(dst_html, 'r') as f:
+        content = f.read()
+    content = content.replace('href="/news"', 'href="http://localhost:8501/news"')
+    with open(dst_html, 'w') as f:
+        f.write(content)
+    print(f"  Copied index.html template → docs/index.html (news link → localhost)")
+else:
+    print(f"  index.html unchanged, skipping copy")
+
 # Just write a timestamp
 with open(os.path.join(DATA_DIR, "generated_at.txt"), "w") as f:
     f.write(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
