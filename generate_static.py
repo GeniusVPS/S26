@@ -106,29 +106,7 @@ stats = {
 with open(os.path.join(DATA_DIR, "stats.json"), "w") as f:
     json.dump(stats, f, ensure_ascii=False)
 
-# === 5. Copy index.html from main template ===
-src_html = os.path.expanduser("~/stock-system/index.html")
-dst_html = os.path.join(OUT_DIR, "index.html")
-
-# Check if template is newer than current static index
-copy_needed = True
-if os.path.exists(dst_html):
-    src_mtime = os.path.getmtime(src_html)
-    dst_mtime = os.path.getmtime(dst_html)
-    copy_needed = src_mtime > dst_mtime
-
-if copy_needed:
-    import shutil
-    shutil.copy2(src_html, dst_html)
-    # Replace Flask route link with static relative link
-    with open(dst_html, 'r') as f:
-        content = f.read()
-    content = content.replace('href="/news"', 'href="/S26/news.html"')
-    with open(dst_html, 'w') as f:
-        f.write(content)
-    print(f"  Copied index.html template → docs/index.html (news link → static /S26/news.html)")
-else:
-    print(f"  index.html unchanged, skipping copy")
+# === 5. Static index.html already written to docs/index.html, no copy needed ===
 
 # Just write a timestamp
 with open(os.path.join(DATA_DIR, "generated_at.txt"), "w") as f:
