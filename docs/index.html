@@ -20,6 +20,9 @@
 body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); padding: 12px; max-width: 480px; margin: 0 auto; }
 h1 { font-size: 1.4rem; margin-bottom: 12px; }
 .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.range-btns { display: flex; gap: 4px; flex-wrap: wrap; }
+.range-btns button { border: 1px solid var(--border); background: var(--card); color: var(--text); border-radius: 6px; padding: 6px 10px; font-size: 0.8rem; cursor: pointer; }
+.range-btns button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
 .card { background: var(--card); border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
 .stats { display: flex; gap: 12px; }
 .stat { flex: 1; text-align: center; }
@@ -43,25 +46,36 @@ h1 { font-size: 1.4rem; margin-bottom: 12px; }
 .source-list { display: flex; flex-wrap: wrap; gap: 8px; }
 .source-item { background: var(--border); padding: 6px 12px; border-radius: 8px; font-size: 0.8rem; }
 .chart-container { position: relative; height: 200px; }
-.timestamp { text-align: center; font-size: 0.7rem; color: var(--text2); margin-bottom: 12px; }
 </style>
 </head>
 <body>
 
-<h1>📈 S26 股票熱榜</h1>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+  <h1 style="margin-bottom:0">📈 S26 股票熱榜</h1>
+  <a href="http://localhost:8501/news" style="padding:6px 12px;background:var(--accent);color:#fff;border-radius:8px;text-decoration:none;font-size:0.8rem;font-weight:600;white-space:nowrap">📰 新聞</a>
+</div>
+<div class="header">
+  <div class="range-btns" id="rangeBtns">
+    <button data-hours="6">6h</button>
+    <button data-hours="12">12h</button>
+    <button data-hours="24" class="active">24h</button>
+    <button data-hours="48">48h</button>
+    <button data-hours="72">72h</button>
+  </div>
+</div>
 
 <div class="stats" id="stats">
   <div class="stat"><div class="num" id="totalNews">-</div><div class="lbl">新聞總數</div></div>
-  <div class="stat"><div class="num" id="totalStocks">-</div><div class="lbl">24h 股票關聯</div></div>
+  <div class="stat"><div class="num" id="totalStocks">-</div><div class="lbl">股票關聯</div></div>
 </div>
 
 <div class="card">
-  <h3 style="margin-bottom:12px">🔥 熱門排行 (24h)</h3>
+  <h3 style="margin-bottom:12px">🔥 熱門排行</h3>
   <div id="hotList"></div>
 </div>
 
 <div class="card">
-  <h3 style="margin-bottom:12px">📊 提及趨勢 (24h)</h3>
+  <h3 style="margin-bottom:12px">📊 提及趨勢</h3>
   <div class="chart-container"><canvas id="timelineChart"></canvas></div>
 </div>
 
@@ -75,21 +89,20 @@ h1 { font-size: 1.4rem; margin-bottom: 12px; }
   <div class="collapsible-content" id="newsList"></div>
 </div>
 
-<div id="timestamp" class="timestamp"></div>
-
 <script>
+let currentHours = 24;
 let timelineChart = null;
+
+async function fetchJSON(url) {
+  const r = await fetch(url);
+  return r.json();
+}
 
 function toggleNews() {
   const h = document.querySelector('.collapsible');
   const c = document.querySelector('.collapsible-content');
   h.classList.toggle('collapsed');
   c.classList.toggle('hidden');
-}
-
-async function fetchJSON(url) {
-  const r = await fetch(url);
-  return r.json();
 }
 
 function renderHot(data) {
@@ -108,14 +121,13 @@ function renderHot(data) {
 function renderTimeline(data) {
   const ctx = document.getElementById('timelineChart');
   if (timelineChart) timelineChart.destroy();
-  if (!data.length) return;
-  const labels = data.map(d => d.date ? d.date.substring(11,16) : '');
-  const values = data.map(d => d.stock_mentions || 0);
+  const labels = data.map(d => d.date);
+  const values = data.map(d => d.stock_mentions);
   const style = getComputedStyle(document.documentElement);
   const textColor = style.getPropertyValue('--text2').trim();
   timelineChart = new Chart(ctx, {
     type: 'line',
-    data: { labels, datasets: [{ label: '提及數', data: values, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', fill: true, tension: 0.3, pointRadius: 4 }] },
+    data: { labels, datasets: [{ label: '股票提及數', data: values, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', fill: true, tension: 0.3, pointRadius: 4 }] },
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: textColor, font: { size: 10 } } }, y: { ticks: { color: textColor, font: { size: 10 } }, beginAtZero: true } } }
   });
 }
@@ -126,34 +138,35 @@ function renderSources(data) {
 
 function renderRecent(data) {
   document.getElementById('newsList').innerHTML = data.map(d => {
-    const date = d.published_at ? new Date(d.published_at).toLocaleString('zh-HK') : '';
-    const tags = (d.related_stocks || []).map(s => `<span class="tag">${s.stock_code}</span>`).join('');
+    const date = d.published_at ? new Date(d.published_at).toLocaleString() : '';
+    const tags = d.related_stocks.map(s => `<span class="tag">${s.stock_code}</span>`).join('');
     return `<div class="news-item"><a href="${d.link}" target="_blank">${d.title}</a><div class="meta">${d.source} · ${date}</div>${tags ? '<div class="tags">' + tags + '</div>' : ''}</div>`;
   }).join('');
 }
 
 async function load() {
-  try {
-    const [hot, stats, timeline, recent] = await Promise.all([
-      fetchJSON('data/hot.json'),
-      fetchJSON('data/stats.json'),
-      fetchJSON('data/timeline.json'),
-      fetchJSON('data/recent.json')
-    ]);
-    document.getElementById('totalNews').textContent = stats.total_news || '-';
-    document.getElementById('totalStocks').textContent = stats.total_stocks || '-';
-    renderHot(hot);
-    renderTimeline(timeline);
-    renderSources(stats.sources || []);
-    renderRecent(recent);
-  } catch(e) {
-    document.getElementById('hotList').innerHTML = '<div style="color:var(--text2);font-size:0.85rem">⚠ 未能載入數據，請稍後再試</div>';
-  }
+  const [hot, stats, timeline, recent] = await Promise.all([
+    fetchJSON(`/api/hot?hours=${currentHours}`),
+    fetchJSON('/api/stats'),
+    fetchJSON(`/api/timeline?hours=${currentHours}`),
+    fetchJSON('/api/recent?limit=20')
+  ]);
+  document.getElementById('totalNews').textContent = stats.total_news;
+  document.getElementById('totalStocks').textContent = stats.total_stocks;
+  renderHot(hot);
+  renderTimeline(timeline);
+  renderSources(stats.sources);
+  renderRecent(recent);
 }
 
-fetch('data/generated_at.txt').then(r => r.text()).then(t => {
-  document.getElementById('timestamp').textContent = '🔄 最後更新: ' + t;
-}).catch(() => {});
+document.querySelectorAll('.range-btns button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.range-btns button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentHours = parseInt(btn.dataset.hours);
+    load();
+  });
+});
 
 load();
 </script>
