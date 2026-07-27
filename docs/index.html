@@ -53,7 +53,10 @@ h1 { font-size: 1.4rem; margin-bottom: 12px; }
 
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
   <h1 style="margin-bottom:0">📈 S26 股票熱榜</h1>
-  <a href="news.html">📰 新聞</a>
+  <div style="display:flex;gap:6px">
+    <a href="news.html" style="padding:6px 12px;background:var(--accent);color:#fff;border-radius:8px;text-decoration:none;font-size:0.8rem;font-weight:600;white-space:nowrap">📰 新聞</a>
+    <a href="/settings" title="設定" style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:var(--card);color:var(--text2);border:1px solid var(--border);border-radius:8px;text-decoration:none;font-size:1.2rem;transition:0.2s" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background='var(--card)'">⚙️</a>
+  </div>
 </div>
 <div class="header">
   <div class="range-btns" id="rangeBtns">

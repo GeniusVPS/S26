@@ -76,7 +76,7 @@ with open(os.path.join(DATA_DIR, "recent.json"), "w") as f:
 
 # === 4a. All news (full dump for static browsing) ===
 all_news_raw = query("""
-    SELECT n.id, n.title, n.source, n.link, n.published_at
+    SELECT n.id, n.title, n.source, n.link, n.published_at, n.sentiment
     FROM news n
     ORDER BY n.published_at DESC
 """)
@@ -87,6 +87,7 @@ for article in all_news_raw:
         (article["id"],)
     )
     article["related_stocks"] = [{"stock_code": s["stock_code"], "company": s["company_name"]} for s in stocks]
+    article["sentiment"] = article.pop("sentiment", None)
     article.pop("id", None)
     all_news.append(article)
 
@@ -98,10 +99,23 @@ total_news = query("SELECT COUNT(*) as cnt FROM news")[0]["cnt"]
 stocks_24h = query("SELECT COUNT(DISTINCT stock_code) as cnt FROM news_stocks WHERE matched_at >= ?", (since_hot,))[0]["cnt"]
 source_stats = query("SELECT source, COUNT(*) as count FROM news GROUP BY source ORDER BY count DESC")
 
+sentiment_stats = query("""
+    SELECT 
+        SUM(CASE WHEN sentiment = 'positive' THEN 1 ELSE 0 END) as positive,
+        SUM(CASE WHEN sentiment = 'negative' THEN 1 ELSE 0 END) as negative,
+        SUM(CASE WHEN sentiment = 'neutral' THEN 1 ELSE 0 END) as neutral
+    FROM news
+""")[0]
+
 stats = {
     "total_news": total_news,
     "total_stocks": stocks_24h,
-    "sources": source_stats
+    "sources": source_stats,
+    "sentiment": {
+        "positive": sentiment_stats["positive"] or 0,
+        "negative": sentiment_stats["negative"] or 0,
+        "neutral": sentiment_stats["neutral"] or 0
+    }
 }
 with open(os.path.join(DATA_DIR, "stats.json"), "w") as f:
     json.dump(stats, f, ensure_ascii=False)

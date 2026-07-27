@@ -1,6 +1,6 @@
 {
   "collector": {
-    "interval_minutes": 30,
+    "interval_minutes": 5,
     "rss_sources": [
       {
         "name": "rthk",
