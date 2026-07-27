@@ -36,6 +36,11 @@ def get_google_news_url():
     cfg = load_config()
     return cfg.get("collector", {}).get("google_news_url", "https://news.google.com/rss/search?q=港股&hl=zh-TW&gl=HK&ceid=HK:zh-Hant")
 
+def get_google_stock_keywords():
+    """Get per-stock Google News search keywords from config."""
+    cfg = load_config()
+    return cfg.get("collector", {}).get("google_stock_keywords", [])
+
 
 def init_db(conn):
     c = conn.cursor()
@@ -227,6 +232,7 @@ def main():
             rss_sources = get_rss_sources()
             interval = get_interval()
             google_url = get_google_news_url()
+            stock_keywords = get_google_stock_keywords()
             print(f"\n=== 第 {round_num} 輪抓取 ({datetime.now().strftime('%H:%M:%S')}) ===")
 
             # Fetch from each RSS source
@@ -248,7 +254,7 @@ def main():
                     print(f"  ✗ {source_name} 抓取失敗: {e}")
                     log_fetch(conn, source_name, 0, 0)
 
-            # Google News
+            # Google News (general 港股)
             print(f"\n📡 正在抓取 Google News (港股)...")
             try:
                 articles = fetch_google_news("港股", google_url)
@@ -265,6 +271,32 @@ def main():
             except Exception as e:
                 print(f"  ✗ Google News 抓取失敗: {e}")
                 log_fetch(conn, "google", 0, 0)
+
+            # Per-stock Google News keyword searches
+            if stock_keywords:
+                print(f"\n🔍 正在抓取個股關鍵字 Google News ({len(stock_keywords)} 組)...")
+                seen_links = set()
+                kw_total = 0
+                kw_new = 0
+                for kw in stock_keywords:
+                    kw_url = f"https://news.google.com/rss/search?q={kw}&hl=zh-TW&gl=HK&ceid=HK:zh-Hant"
+                    try:
+                        articles = fetch_google_news(kw, kw_url)
+                        for art in articles:
+                            if art["link"] in seen_links:
+                                continue
+                            seen_links.add(art["link"])
+                            is_new, matched = save_article(conn, f"google:{kw}", art, stocks_map)
+                            if is_new:
+                                kw_new += 1
+                                if matched:
+                                    codes = ", ".join(f"{m['name']}({m['code']})" for m in matched)
+                                    print(f"  ★ [{kw}] {art['title'][:40]}... → {codes}")
+                        kw_total += len(articles)
+                    except Exception as e:
+                        print(f"  ✗ Google News 「{kw}」失敗: {e}")
+                log_fetch(conn, "google_stock_kw", kw_total, kw_new)
+                print(f"  ✓ 個股關鍵字: 共 {kw_total} 篇 (去重後新增 {kw_new} 篇)")
 
             # Print hot list
             print_hot_list(conn)
