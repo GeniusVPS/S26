@@ -3,6 +3,7 @@ import sqlite3
 import os, json, subprocess, time
 from datetime import datetime, timedelta
 from flask import Flask, jsonify, request, send_from_directory
+import yfinance as yf
 
 app = Flask(__name__)
 DB_PATH = os.path.expanduser("~/stock-system/news.db")
@@ -261,6 +262,113 @@ def api_news():
         "page": page,
         "per_page": per_page,
         "total_pages": (total + per_page - 1) // per_page if total > 0 else 0
+    })
+
+
+@app.route("/api/prices")
+def api_prices():
+    """Fetch real-time/latest close prices for watchlist"""
+    cfg = load_config()
+    watchlist = cfg.get("stocks", {}).get("watchlist", [])
+    tickers = [s["code"] for s in watchlist]
+
+    result = []
+    batch_size = 8
+    for i in range(0, len(tickers), batch_size):
+        batch = tickers[i:i+batch_size]
+        try:
+            data = yf.download(
+                batch,
+                period="1d",
+                progress=False,
+                group_by="ticker",
+                threads=True
+            )
+        except Exception as e:
+            data = None
+
+        for ticker in batch:
+            stock_info = {}
+            for s in watchlist:
+                if s["code"] == ticker:
+                    stock_info = s
+                    break
+
+            entry = {
+                "code": ticker,
+                "name": stock_info.get("name", ticker),
+                "market": "HK" if ".HK" in ticker else "US"
+            }
+
+            try:
+                t = yf.Ticker(ticker, session=None)
+                info = t.info if hasattr(t, 'info') else {}
+                # Try fast path first (yf.download results)
+                if data is not None and ticker in data.columns.levels[0] if hasattr(data.columns, 'levels') else False:
+                    try:
+                        row = data[ticker]
+                        entry["close"] = round(float(row["Close"].iloc[-1]), 2) if pd.notna(row["Close"].iloc[-1]) else None
+                        entry["open"] = round(float(row["Open"].iloc[-1]), 2) if pd.notna(row["Open"].iloc[-1]) else None
+                        entry["high"] = round(float(row["High"].iloc[-1]), 2) if pd.notna(row["High"].iloc[-1]) else None
+                        entry["low"] = round(float(row["Low"].iloc[-1]), 2) if pd.notna(row["Low"].iloc[-1]) else None
+                        entry["volume"] = int(row["Volume"].iloc[-1]) if pd.notna(row["Volume"].iloc[-1]) else None
+                    except:
+                        pass
+
+                # Fallback: use ticker.info for prev close and current
+                try:
+                    prv = info.get("previousClose")
+                    cur = info.get("currentPrice") or info.get("regularMarketPrice") or info.get("price")
+                    if prv is not None:
+                        entry["prev_close"] = round(float(prv), 2)
+                    if entry.get("close") is None and cur is not None:
+                        entry["close"] = round(float(cur), 2)
+                    if entry.get("open") is None:
+                        opn = info.get("open") or info.get("regularMarketOpen")
+                        if opn is not None:
+                            entry["open"] = round(float(opn), 2)
+                    if entry.get("high") is None:
+                        hi = info.get("dayHigh") or info.get("regularMarketDayHigh")
+                        if hi is not None:
+                            entry["high"] = round(float(hi), 2)
+                    if entry.get("low") is None:
+                        lo = info.get("dayLow") or info.get("regularMarketDayLow")
+                        if lo is not None:
+                            entry["low"] = round(float(lo), 2)
+                    if entry.get("volume") is None:
+                        vol = info.get("volume") or info.get("regularMarketVolume")
+                        if vol is not None:
+                            entry["volume"] = int(vol)
+                except:
+                    pass
+
+                # Calculate change
+                if entry.get("close") and entry.get("prev_close"):
+                    entry["change"] = round(entry["close"] - entry["prev_close"], 2)
+                    entry["change_pct"] = round(entry["change"] / entry["prev_close"] * 100, 2)
+            except Exception as e:
+                entry["error"] = str(e)
+
+            result.append(entry)
+
+        time.sleep(0.5)  # Rate limit
+
+    # Summary stats
+    gainers = [s for s in result if s.get("change_pct", 0) > 0]
+    losers = [s for s in result if s.get("change_pct", 0) < 0]
+    flat = [s for s in result if s.get("change_pct", 0) == 0]
+
+    return jsonify({
+        "data": result,
+        "summary": {
+            "total": len(result),
+            "gainers": len(gainers),
+            "losers": len(losers),
+            "flat": len(flat),
+            "top_gainer": max(gainers, key=lambda x: x.get("change_pct", 0)) if gainers else None,
+            "top_loser": min(losers, key=lambda x: x.get("change_pct", 0)) if losers else None,
+            "fetched_at": datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        }
     })
 
 
