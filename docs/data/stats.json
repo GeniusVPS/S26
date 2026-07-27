@@ -1,1 +1,1 @@
-{"total_news": 980, "total_stocks": 11, "sources": [{"source": "yahoo", "count": 812}, {"source": "google", "count": 168}], "sentiment": {"positive": 134, "negative": 190, "neutral": 377}}
+{"total_news": 993, "total_stocks": 3, "sources": [{"source": "yahoo", "count": 817}, {"source": "google", "count": 176}], "sentiment": {"positive": 134, "negative": 190, "neutral": 377}}
