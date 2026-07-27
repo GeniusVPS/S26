@@ -9,6 +9,7 @@
 :root {
   --bg: #f5f5f5; --card: #ffffff; --text: #1a1a1a; --text2: #666666;
   --accent: #2563eb; --border: #e5e5e5; --bar: #3b82f6;
+  --menu-top: 56px;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -18,71 +19,158 @@
 }
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); padding: 12px; max-width: 480px; margin: 0 auto; }
-h1 { font-size: 1.4rem; margin-bottom: 12px; }
-.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-.range-btns { display: flex; gap: 4px; flex-wrap: wrap; }
+
+/* ─── Top bar ─── */
+.top-bar { display: flex; justify-content: space-between; align-items: center; height: 44px; margin-bottom: 4px; }
+.top-bar h1 { font-size: 1.4rem; }
+.menu-btn { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; cursor: pointer; border-radius: 8px; border: none; background: transparent; color: var(--text); user-select: none; -webkit-tap-highlight-color: transparent; }
+.menu-btn:active { background: var(--border); }
+
+/* ─── Page indicator dots ─── */
+.page-dots { display: flex; justify-content: center; gap: 8px; margin-bottom: 8px; }
+.page-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); border: none; cursor: pointer; padding: 0; transition: 0.2s; }
+.page-dot.active { background: var(--accent); width: 24px; border-radius: 4px; }
+
+/* ─── Page container ─── */
+.page-container { position: relative; overflow: hidden; }
+.page { display: none; animation: fadeIn 0.2s ease; }
+.page.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ─── Card ─── */
+.card { background: var(--card); border-radius: 12px; padding: 16px; margin-bottom: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+.card-title { font-size: 0.95rem; font-weight: 600; margin-bottom: 12px; }
+
+/* ─── Range buttons ─── */
+.range-btns { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 12px; }
 .range-btns button { border: 1px solid var(--border); background: var(--card); color: var(--text); border-radius: 6px; padding: 6px 10px; font-size: 0.8rem; cursor: pointer; }
 .range-btns button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
-.card { background: var(--card); border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+
+/* ─── Hot ranking bars ─── */
 .bar-row { display: flex; align-items: center; margin-bottom: 8px; }
 .bar-label { width: 70px; font-size: 0.8rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .bar-track { flex: 1; height: 24px; background: var(--border); border-radius: 4px; overflow: hidden; }
 .bar-fill { height: 100%; background: var(--bar); border-radius: 4px; display: flex; align-items: center; padding-left: 6px; font-size: 0.7rem; color: #fff; min-width: 30px; }
-.chart-container { position: relative; height: 200px; }
+
+/* ─── Chart ─── */
+.chart-container { position: relative; height: 220px; }
+
+/* ─── Sources ─── */
 .source-list { display: flex; flex-wrap: wrap; gap: 8px; }
 .source-item { background: var(--border); padding: 6px 12px; border-radius: 8px; font-size: 0.8rem; }
-.footer-link { display: flex; justify-content: center; padding: 20px 0 8px; gap: 24px; }
-.footer-link a { display: flex; align-items: center; gap: 6px; color: var(--text2); text-decoration: none; font-size: 0.85rem; padding: 8px 16px; border-radius: 10px; background: var(--card); border: 1px solid var(--border); transition: 0.2s; }
-.footer-link a:hover { background: var(--border); }
+.source-item .count { color: var(--text2); margin-left: 4px; font-size: 0.7rem; }
+
+/* ─── Drawer overlay ─── */
+.drawer-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100; }
+.drawer-overlay.open { display: block; }
+
+/* ─── Drawer menu ─── */
+.drawer { position: fixed; top: 0; right: 0; bottom: 0; width: 240px; background: var(--card); z-index: 101; transform: translateX(105%); transition: transform 0.25s ease; box-shadow: -4px 0 12px rgba(0,0,0,0.15); display: flex; flex-direction: column; }
+.drawer.open { transform: translateX(0); }
+.drawer-header { display: flex; justify-content: space-between; align-items: center; padding: 16px; border-bottom: 1px solid var(--border); }
+.drawer-header h2 { font-size: 1.1rem; }
+.drawer-close { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; cursor: pointer; border-radius: 6px; border: none; background: transparent; color: var(--text); }
+.drawer-close:active { background: var(--border); }
+.drawer-nav { flex: 1; padding: 8px 0; }
+.drawer-item { display: flex; align-items: center; gap: 12px; padding: 14px 16px; font-size: 0.95rem; cursor: pointer; transition: 0.15s; border: none; background: transparent; color: var(--text); width: 100%; text-align: left; }
+.drawer-item:active { background: var(--border); }
+.drawer-item .icon { font-size: 1.2rem; width: 28px; text-align: center; }
+.drawer-item.active-item { background: var(--bg); color: var(--accent); font-weight: 600; }
+.drawer-footer { padding: 16px; border-top: 1px solid var(--border); }
+.drawer-footer a { color: var(--text2); text-decoration: none; font-size: 0.85rem; display: flex; align-items: center; gap: 8px; }
 </style>
 </head>
 <body>
 
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-  <h1 style="margin-bottom:0">📈 S26 股票熱榜</h1>
+<!-- ═══ Top bar ═══ -->
+<div class="top-bar">
+  <h1>📈 S26</h1>
+  <button class="menu-btn" id="menuBtn" aria-label="Menu">☰</button>
 </div>
-<div class="header">
-  <div class="range-btns" id="rangeBtns">
-    <button data-hours="6">6h</button>
-    <button data-hours="12">12h</button>
-    <button data-hours="24" class="active">24h</button>
-    <button data-hours="48">48h</button>
-    <button data-hours="72">72h</button>
+
+<!-- Page indicator dots -->
+<div class="page-dots" id="pageDots">
+  <button class="page-dot active" data-page="0"></button>
+  <button class="page-dot" data-page="1"></button>
+  <button class="page-dot" data-page="2"></button>
+</div>
+
+<!-- ═══ Pages ═══ -->
+<div class="page-container">
+
+  <!-- Page 1: Hot Ranking ──── -->
+  <div class="page active" id="page0">
+    <div class="range-btns" data-range-group="hot">
+      <button data-hours="6">6h</button>
+      <button data-hours="12">12h</button>
+      <button data-hours="24" class="active">24h</button>
+      <button data-hours="48">48h</button>
+      <button data-hours="72">72h</button>
+    </div>
+    <div class="card">
+      <div class="card-title">🔥 熱門排行</div>
+      <div id="hotList"></div>
+    </div>
   </div>
+
+  <!-- Page 2: Timeline Chart ──── -->
+  <div class="page" id="page1">
+    <div class="range-btns" data-range-group="timeline">
+      <button data-hours="6">6h</button>
+      <button data-hours="12">12h</button>
+      <button data-hours="24" class="active">24h</button>
+      <button data-hours="48">48h</button>
+      <button data-hours="72">72h</button>
+    </div>
+    <div class="card">
+      <div class="card-title">📊 提及趨勢</div>
+      <div class="chart-container"><canvas id="timelineChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Page 3: Sources ──── -->
+  <div class="page" id="page2">
+    <div class="card">
+      <div class="card-title">📡 新聞來源</div>
+      <div class="source-list" id="sourceList"></div>
+    </div>
+  </div>
+
 </div>
 
+<!-- ═══ Drawer overlay ═══ -->
+<div class="drawer-overlay" id="drawerOverlay"></div>
 
-
-<div class="card">
-  <h3 style="margin-bottom:12px">🔥 熱門排行</h3>
-  <div id="hotList"></div>
-</div>
-
-<div class="card">
-  <h3 style="margin-bottom:12px">📊 提及趨勢</h3>
-  <div class="chart-container"><canvas id="timelineChart"></canvas></div>
-</div>
-
-<div class="card">
-  <h3 style="margin-bottom:12px">📡 新聞來源</h3>
-  <div class="source-list" id="sourceList"></div>
-</div>
-
-<div class="footer-link">
-  <a href="more">📊 更多（股價·新聞·設定）</a>
+<!-- ═══ Drawer menu ═══ -->
+<div class="drawer" id="drawer">
+  <div class="drawer-header">
+    <h2>📈 S26</h2>
+    <button class="drawer-close" id="drawerClose">✕</button>
+  </div>
+  <div class="drawer-nav">
+    <button class="drawer-item active-item" data-page="0">
+      <span class="icon">🔥</span> 熱門排行
+    </button>
+    <button class="drawer-item" data-page="1">
+      <span class="icon">📊</span> 提及趨勢
+    </button>
+    <button class="drawer-item" data-page="2">
+      <span class="icon">📡</span> 新聞來源
+    </button>
+  </div>
+  <div class="drawer-footer">
+    <a href="more">📊 更多（股價·新聞·設定）</a>
+  </div>
 </div>
 
 <script>
 // === Auto-detect: local (Flask API) vs GitHub Pages (static JSON) ===
-// We use the hostname to decide. GitHub Pages serves from /S26/ subpath.
 const BASE = location.hostname === 'geniusvps.github.io' ? '/S26' : '';
 const API_HOST = location.hostname === 'geniusvps.github.io' ? `https://geniusvps.github.io${BASE}/data` : '';
 
-// For GitHub Pages, we read static JSON. For local, we call /api/*
 function getJSON(path) {
   let url;
   if (API_HOST) {
-    // Static GitHub Pages — use pre-generated data files
     if (path.startsWith('/api/hot')) url = `${API_HOST}/hot.json`;
     else if (path.startsWith('/api/timeline')) url = `${API_HOST}/timeline.json`;
     else url = `${API_HOST}/stats.json`;
@@ -91,10 +179,7 @@ function getJSON(path) {
   }
   return fetch(url).then(async r => {
     const data = await r.json();
-    // If we got stats.json and wanted /api/sources, extract the sources array
     if (API_HOST && path.startsWith('/api/sources')) {
-      // stats.json stores sources as [{source, count},...]
-      // /api/sources returns just names
       if (data.sources) return data.sources.map(s => (typeof s === 'string') ? s : s.source);
       return [];
     }
@@ -102,9 +187,45 @@ function getJSON(path) {
   });
 }
 
-let currentHours = 24;
+// ─── State ───
+let currentPage = 0;
+const pages = ['page0', 'page1', 'page2'];
 let timelineChart = null;
+let currentHours = 24;
 
+// ─── Page navigation ───
+function goToPage(idx) {
+  // Update pages
+  pages.forEach((id, i) => {
+    document.getElementById(id).classList.toggle('active', i === idx);
+  });
+  // Update dots
+  document.querySelectorAll('.page-dot').forEach((dot, i) => {
+    dot.classList.toggle('active', i === idx);
+  });
+  // Update drawer items
+  document.querySelectorAll('.drawer-item').forEach((item, i) => {
+    item.classList.toggle('active-item', i === idx);
+  });
+  currentPage = idx;
+
+  // Re-render timeline if needed (Chart.js needs the canvas visible)
+  if (idx === 1 && timelineChart) loadTimeline();
+
+  closeDrawer();
+}
+
+// ─── Drawer ───
+function openDrawer() {
+  document.getElementById('drawerOverlay').classList.add('open');
+  document.getElementById('drawer').classList.add('open');
+}
+function closeDrawer() {
+  document.getElementById('drawerOverlay').classList.remove('open');
+  document.getElementById('drawer').classList.remove('open');
+}
+
+// ─── Rendering ───
 function renderHot(data) {
   const el = document.getElementById('hotList');
   if (!data.length) { el.innerHTML = '<div style="color:var(--text2);font-size:0.85rem">暫無數據</div>'; return; }
@@ -120,6 +241,7 @@ function renderHot(data) {
 
 function renderTimeline(data) {
   const ctx = document.getElementById('timelineChart');
+  if (!ctx) return;
   if (timelineChart) timelineChart.destroy();
   const labels = data.map(d => d.date);
   const values = data.map(d => d.stock_mentions);
@@ -135,38 +257,101 @@ function renderTimeline(data) {
 function renderSources(data) {
   document.getElementById('sourceList').innerHTML = data.map(d => {
     const label = typeof d === 'string' ? d : (d.source || d.name || d);
-    return `<div class="source-item">${label}</div>`;
+    const count = typeof d === 'object' && d ? d.count : null;
+    return `<div class="source-item">${label}${count !== null ? `<span class="count">${count}</span>` : ''}</div>`;
   }).join('');
 }
 
-async function load() {
-  let hotUrl = `/api/hot?hours=${currentHours}`;
-  let timelineUrl = `/api/timeline?hours=${currentHours}`;
+// ─── Data loading ───
+async function loadHot() {
+  const data = await getJSON(`/api/hot?hours=${currentHours}`);
+  renderHot(data);
+}
 
+async function loadTimeline() {
+  const data = await getJSON(`/api/timeline?hours=${currentHours}`);
+  renderTimeline(data);
+}
+
+async function loadSources() {
+  const data = await getJSON('/api/sources');
+  renderSources(data);
+}
+
+async function loadAll() {
   try {
-    const [hot, timeline, sources] = await Promise.all([
-      getJSON(hotUrl),
-      getJSON(timelineUrl),
-      getJSON('/api/sources')
-    ]);
-    renderHot(hot);
-    renderTimeline(timeline);
-    renderSources(sources);
+    await Promise.all([loadHot(), loadTimeline(), loadSources()]);
   } catch(e) {
     document.getElementById('hotList').innerHTML = '<div style="color:var(--text2);font-size:0.85rem">⚠️ 無法載入數據</div>';
   }
 }
 
+// ─── Events ───
+
+// Menu button
+document.getElementById('menuBtn').addEventListener('click', openDrawer);
+
+// Drawer overlay (close on tap)
+document.getElementById('drawerOverlay').addEventListener('click', closeDrawer);
+
+// Drawer close button
+document.getElementById('drawerClose').addEventListener('click', closeDrawer);
+
+// Drawer nav items
+document.querySelectorAll('.drawer-item').forEach(item => {
+  item.addEventListener('click', () => goToPage(parseInt(item.dataset.page)));
+});
+
+// Page dots
+document.querySelectorAll('.page-dot').forEach(dot => {
+  dot.addEventListener('click', () => goToPage(parseInt(dot.dataset.page)));
+});
+
+// Range buttons (shared state, both groups affect currentHours)
 document.querySelectorAll('.range-btns button').forEach(btn => {
   btn.addEventListener('click', () => {
-    document.querySelectorAll('.range-btns button').forEach(b => b.classList.remove('active'));
+    const group = btn.closest('[data-range-group]');
+    // Toggle within the same group
+    group.querySelectorAll('button').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
+    const prevHours = currentHours;
     currentHours = parseInt(btn.dataset.hours);
-    load();
+    // Reload data if hours changed
+    if (prevHours !== currentHours) {
+      loadHot();
+      loadTimeline();
+    }
   });
 });
 
-load();
+// ─── Swipe support ───
+let touchStartX = 0;
+let touchEndX = 0;
+
+document.addEventListener('touchstart', e => {
+  // Only capture if tap starts outside the drawer
+  if (document.getElementById('drawer').classList.contains('open')) return;
+  touchStartX = e.changedTouches[0].screenX;
+}, { passive: true });
+
+document.addEventListener('touchend', e => {
+  if (document.getElementById('drawer').classList.contains('open')) return;
+  touchEndX = e.changedTouches[0].screenX;
+  const diff = touchStartX - touchEndX;
+  const abs = Math.abs(diff);
+  if (abs < 50) return; // too short
+
+  if (diff > 0 && currentPage < pages.length - 1) {
+    // swipe left → next page
+    goToPage(currentPage + 1);
+  } else if (diff < 0 && currentPage > 0) {
+    // swipe right → prev page
+    goToPage(currentPage - 1);
+  }
+}, { passive: true });
+
+// ─── Init ───
+loadAll();
 </script>
 </body>
 </html>
