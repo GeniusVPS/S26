@@ -24,10 +24,6 @@ h1 { font-size: 1.4rem; margin-bottom: 12px; }
 .range-btns button { border: 1px solid var(--border); background: var(--card); color: var(--text); border-radius: 6px; padding: 6px 10px; font-size: 0.8rem; cursor: pointer; }
 .range-btns button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
 .card { background: var(--card); border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-.stats { display: flex; gap: 12px; }
-.stat { flex: 1; text-align: center; }
-.stat .num { font-size: 1.8rem; font-weight: 700; color: var(--accent); }
-.stat .lbl { font-size: 0.75rem; color: var(--text2); }
 .bar-row { display: flex; align-items: center; margin-bottom: 8px; }
 .bar-label { width: 70px; font-size: 0.8rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .bar-track { flex: 1; height: 24px; background: var(--border); border-radius: 4px; overflow: hidden; }
@@ -55,10 +51,7 @@ h1 { font-size: 1.4rem; margin-bottom: 12px; }
   </div>
 </div>
 
-<div class="stats" id="stats">
-  <div class="stat"><div class="num" id="totalNews">-</div><div class="lbl">新聞總數</div></div>
-  <div class="stat"><div class="num" id="totalStocks">-</div><div class="lbl">股票關聯</div></div>
-</div>
+
 
 <div class="card">
   <h3 style="margin-bottom:12px">🔥 熱門排行</h3>
@@ -90,15 +83,23 @@ function getJSON(path) {
   let url;
   if (API_HOST) {
     // Static GitHub Pages — use pre-generated data files
-    if (path === '/api/stats') url = `${API_HOST}/stats.json`;
-    else if (path.startsWith('/api/hot')) url = `${API_HOST}/hot.json`;
+    if (path.startsWith('/api/hot')) url = `${API_HOST}/hot.json`;
     else if (path.startsWith('/api/timeline')) url = `${API_HOST}/timeline.json`;
-
     else url = `${API_HOST}/stats.json`;
   } else {
     url = path;
   }
-  return fetch(url).then(r => r.json());
+  return fetch(url).then(async r => {
+    const data = await r.json();
+    // If we got stats.json and wanted /api/sources, extract the sources array
+    if (API_HOST && path.startsWith('/api/sources')) {
+      // stats.json stores sources as [{source, count},...]
+      // /api/sources returns just names
+      if (data.sources) return data.sources.map(s => (typeof s === 'string') ? s : s.source);
+      return [];
+    }
+    return data;
+  });
 }
 
 let currentHours = 24;
@@ -132,7 +133,10 @@ function renderTimeline(data) {
 }
 
 function renderSources(data) {
-  document.getElementById('sourceList').innerHTML = data.map(d => `<div class="source-item">${d.source} (${d.count})</div>`).join('');
+  document.getElementById('sourceList').innerHTML = data.map(d => {
+    const label = typeof d === 'string' ? d : (d.source || d.name || d);
+    return `<div class="source-item">${label}</div>`;
+  }).join('');
 }
 
 async function load() {
@@ -140,16 +144,14 @@ async function load() {
   let timelineUrl = `/api/timeline?hours=${currentHours}`;
 
   try {
-    const [hot, stats, timeline] = await Promise.all([
+    const [hot, timeline, sources] = await Promise.all([
       getJSON(hotUrl),
-      getJSON('/api/stats'),
-      getJSON(timelineUrl)
+      getJSON(timelineUrl),
+      getJSON('/api/sources')
     ]);
-    document.getElementById('totalNews').textContent = stats.total_news;
-    document.getElementById('totalStocks').textContent = stats.total_stocks;
     renderHot(hot);
     renderTimeline(timeline);
-    renderSources(stats.sources);
+    renderSources(sources);
   } catch(e) {
     document.getElementById('hotList').innerHTML = '<div style="color:var(--text2);font-size:0.85rem">⚠️ 無法載入數據</div>';
   }
