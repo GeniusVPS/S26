@@ -32,12 +32,6 @@ h1 { font-size: 1.4rem; margin-bottom: 12px; }
 .bar-label { width: 70px; font-size: 0.8rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .bar-track { flex: 1; height: 24px; background: var(--border); border-radius: 4px; overflow: hidden; }
 .bar-fill { height: 100%; background: var(--bar); border-radius: 4px; display: flex; align-items: center; padding-left: 6px; font-size: 0.7rem; color: #fff; min-width: 30px; }
-.news-item { padding: 10px 0; border-bottom: 1px solid var(--border); }
-.news-item:last-child { border-bottom: none; }
-.news-item a { color: var(--text); text-decoration: none; font-size: 0.9rem; font-weight: 500; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.news-item .meta { font-size: 0.7rem; color: var(--text2); margin-top: 4px; }
-.news-item .tags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
-.news-item .tag { background: var(--accent); color: #fff; font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; }
 .chart-container { position: relative; height: 200px; }
 .source-list { display: flex; flex-wrap: wrap; gap: 8px; }
 .source-item { background: var(--border); padding: 6px 12px; border-radius: 8px; font-size: 0.8rem; }
@@ -77,11 +71,6 @@ h1 { font-size: 1.4rem; margin-bottom: 12px; }
 </div>
 
 <div class="card">
-  <h3 style="margin-bottom:12px">📰 近期新聞</h3>
-  <div id="newsList" style="max-height:400px;overflow-y:auto"></div>
-</div>
-
-<div class="card">
   <h3 style="margin-bottom:12px">📡 新聞來源</h3>
   <div class="source-list" id="sourceList"></div>
 </div>
@@ -104,7 +93,7 @@ function getJSON(path) {
     if (path === '/api/stats') url = `${API_HOST}/stats.json`;
     else if (path.startsWith('/api/hot')) url = `${API_HOST}/hot.json`;
     else if (path.startsWith('/api/timeline')) url = `${API_HOST}/timeline.json`;
-    else if (path.startsWith('/api/recent')) url = `${API_HOST}/recent.json`;
+
     else url = `${API_HOST}/stats.json`;
   } else {
     url = path;
@@ -146,32 +135,21 @@ function renderSources(data) {
   document.getElementById('sourceList').innerHTML = data.map(d => `<div class="source-item">${d.source} (${d.count})</div>`).join('');
 }
 
-function renderRecent(data) {
-  document.getElementById('newsList').innerHTML = data.map(d => {
-    const date = d.published_at ? new Date(d.published_at).toLocaleString() : '';
-    const tags = (d.related_stocks || []).map(s => `<span class="tag">${s.stock_code || s.code}</span>`).join('');
-    return `<div class="news-item"><a href="${d.link}" target="_blank">${d.title}</a><div class="meta">${d.source} · ${date}</div>${tags ? '<div class="tags">' + tags + '</div>' : ''}</div>`;
-  }).join('');
-}
-
 async function load() {
-  const needFilter = !API_HOST; // Local API supports filtering by hours
   let hotUrl = `/api/hot?hours=${currentHours}`;
   let timelineUrl = `/api/timeline?hours=${currentHours}`;
 
   try {
-    const [hot, stats, timeline, recent] = await Promise.all([
+    const [hot, stats, timeline] = await Promise.all([
       getJSON(hotUrl),
       getJSON('/api/stats'),
-      getJSON(timelineUrl),
-      getJSON('/api/recent?limit=20')
+      getJSON(timelineUrl)
     ]);
     document.getElementById('totalNews').textContent = stats.total_news;
     document.getElementById('totalStocks').textContent = stats.total_stocks;
     renderHot(hot);
     renderTimeline(timeline);
     renderSources(stats.sources);
-    renderRecent(recent);
   } catch(e) {
     document.getElementById('hotList').innerHTML = '<div style="color:var(--text2);font-size:0.85rem">⚠️ 無法載入數據</div>';
   }
