@@ -238,8 +238,16 @@ h1 span { background: #1a1a2e; color: #fff; font-size: 14px; padding: 2px 10px; 
 let config = null;
 let sourceDirty = false;
 
+const ON_GITHUB_PAGES = location.hostname === 'geniusvps.github.io';
+
 // ====== Load config ======
 async function loadConfig() {
+  if (ON_GITHUB_PAGES) {
+    document.querySelector('.refresh-bar').innerHTML = '<span>⚠️ GitHub Pages 無後端服務</span><span>請訪問 <a href="http://localhost:8501/settings" style="color:#1565c0">http://localhost:8501/settings</a></span>';
+    document.querySelectorAll('.section').forEach(el => el.style.display = 'none');
+    document.getElementById('saveBtn').style.display = 'none';
+    return;
+  }
   const res = await fetch('/api/config');
   config = await res.json();
   render();
@@ -576,6 +584,7 @@ async function saveConfig() {
     showToast('✅ 設定已儲存');
     config = await res.json();
     sourceDirty = false;
+    render();
   } else {
     showToast('❌ 儲存失敗');
   }

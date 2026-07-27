@@ -54,7 +54,9 @@ def api_config():
             else:
                 existing[section] = data[section]
         save_config(existing)
-        return jsonify({"status": "ok", "config": existing})
+        # Return just the config, matching frontend expectation
+        return jsonify(existing)
+    return jsonify(load_config())
     return jsonify(load_config())
 
 @app.route("/api/logs")
