@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>S26 股票熱榜</title>
+<title>📈 S26 股票熱榜</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <style>
 :root {
@@ -34,66 +34,31 @@ h1 { font-size: 1.4rem; margin-bottom: 12px; }
 .bar-fill { height: 100%; background: var(--bar); border-radius: 4px; display: flex; align-items: center; padding-left: 6px; font-size: 0.7rem; color: #fff; min-width: 30px; }
 .news-item { padding: 10px 0; border-bottom: 1px solid var(--border); }
 .news-item:last-child { border-bottom: none; }
-.news-item a { color: var(--text); text-decoration: none; font-size: 0.9rem; font-weight: 500; }
+.news-item a { color: var(--text); text-decoration: none; font-size: 0.9rem; font-weight: 500; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .news-item .meta { font-size: 0.7rem; color: var(--text2); margin-top: 4px; }
 .news-item .tags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
 .news-item .tag { background: var(--accent); color: #fff; font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; }
-.collapsible { cursor: pointer; }
-.collapsible::after { content: " ▼"; font-size: 0.7rem; }
-.collapsible.collapsed::after { content: " ▶"; }
-.collapsible-content { max-height: 600px; overflow-y: auto; transition: max-height 0.3s; }
-.collapsible-content.hidden { max-height: 0; overflow: hidden; }
+.chart-container { position: relative; height: 200px; }
 .source-list { display: flex; flex-wrap: wrap; gap: 8px; }
 .source-item { background: var(--border); padding: 6px 12px; border-radius: 8px; font-size: 0.8rem; }
-.chart-container { position: relative; height: 200px; }
 
-/* ====== 收市分析 ====== */
-.price-card { background: var(--card); border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-.price-summary { display: flex; gap: 8px; margin-bottom: 12px; }
-.price-stat { flex: 1; text-align: center; padding: 10px 4px; border-radius: 10px; font-size: 0.75rem; font-weight: 500; }
-.price-stat.gain { background: #e8f5e9; color: #2e7d32; }
-.price-stat.loss { background: #ffebee; color: #c62828; }
-.price-stat.flat { background: #f5f5f5; color: #666; }
-.price-stat .num { font-size: 1.5rem; font-weight: 700; display: block; }
-.price-stat .lbl { font-size: 0.65rem; opacity: 0.7; }
-@media (prefers-color-scheme: dark) {
-  .price-stat.gain { background: #1b3a1b; color: #81c784; }
-  .price-stat.loss { background: #3a1b1b; color: #e57373; }
-  .price-stat.flat { background: #2a2a2a; color: #999; }
+/* ====== 底部「更多」連結 ====== */
+.footer-link {
+  display: flex; justify-content: center; padding: 20px 0 8px; gap: 24px;
 }
-.price-highlight { display: flex; gap: 8px; margin-bottom: 12px; }
-.price-highlight-item { flex: 1; padding: 10px; border-radius: 10px; font-size: 0.75rem; }
-.price-highlight-item.up { background: #e8f5e9; color: #2e7d32; }
-.price-highlight-item.down { background: #ffebee; color: #c62828; }
-.price-highlight-item .stock { font-weight: 700; font-size: 0.9rem; display: block; }
-.price-highlight-item .chg { font-size: 0.8rem; }
-@media (prefers-color-scheme: dark) {
-  .price-highlight-item.up { background: #1b3a1b; color: #81c784; }
-  .price-highlight-item.down { background: #3a1b1b; color: #e57373; }
+.footer-link a {
+  display: flex; align-items: center; gap: 6px;
+  color: var(--text2); text-decoration: none; font-size: 0.85rem; padding: 8px 16px;
+  border-radius: 10px; background: var(--card); border: 1px solid var(--border);
+  transition: 0.2s;
 }
-.price-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
-.price-table td { padding: 6px 4px; border-bottom: 1px solid var(--border); }
-.price-table tr:last-child td { border-bottom: none; }
-.price-table .code { font-weight: 600; }
-.price-table .name { color: var(--text2); font-size: 0.7rem; }
-.price-table .close { text-align: right; font-weight: 600; }
-.price-table .chg { text-align: right; }
-.price-table .chg.pos { color: #2e7d32; }
-.price-table .chg.neg { color: #c62828; }
-.price-table .mkt-hk td:first-child::before { content: "🇭🇰 "; font-size: 0.6rem; }
-.price-table .mkt-us td:first-child::before { content: "🇺🇸 "; font-size: 0.6rem; }
-.price-mkt-label { font-size: 0.7rem; font-weight: 600; color: var(--text2); padding: 8px 0 4px; border-bottom: 1px solid var(--border); margin-top: 8px; }
-.price-loading { text-align: center; padding: 20px; color: var(--text2); font-size: 0.85rem; }
+.footer-link a:hover { background: var(--border); }
 </style>
 </head>
 <body>
 
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
   <h1 style="margin-bottom:0">📈 S26 股票熱榜</h1>
-  <div style="display:flex;gap:6px">
-    <a href="/news" style="padding:6px 12px;background:var(--accent);color:#fff;border-radius:8px;text-decoration:none;font-size:0.8rem;font-weight:600;white-space:nowrap">📰 新聞</a>
-    <a href="/settings" title="設定" style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:var(--card);color:var(--text2);border:1px solid var(--border);border-radius:8px;text-decoration:none;font-size:1.2rem;transition:0.2s" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background='var(--card)'">⚙️</a>
-  </div>
 </div>
 <div class="header">
   <div class="range-btns" id="rangeBtns">
@@ -110,12 +75,6 @@ h1 { font-size: 1.4rem; margin-bottom: 12px; }
   <div class="stat"><div class="num" id="totalStocks">-</div><div class="lbl">股票關聯</div></div>
 </div>
 
-<!-- 半日/全日收市分析 -->
-<div class="price-card" id="priceSection">
-  <h3 style="margin-bottom:12px">📊 今日收市</h3>
-  <div id="priceContent" class="price-loading">載入中...</div>
-</div>
-
 <div class="card">
   <h3 style="margin-bottom:12px">🔥 熱門排行</h3>
   <div id="hotList"></div>
@@ -127,135 +86,26 @@ h1 { font-size: 1.4rem; margin-bottom: 12px; }
 </div>
 
 <div class="card">
+  <h3 style="margin-bottom:12px">📰 近期新聞</h3>
+  <div id="newsList" style="max-height:400px;overflow-y:auto"></div>
+</div>
+
+<div class="card">
   <h3 style="margin-bottom:12px">📡 新聞來源</h3>
   <div class="source-list" id="sourceList"></div>
 </div>
 
-<div class="card">
-  <h3 style="margin-bottom:12px" class="collapsible" onclick="toggleNews()">📰 近期新聞</h3>
-  <div class="collapsible-content" id="newsList"></div>
+<div class="footer-link">
+  <a href="/more">📊 更多（股價·新聞·設定）</a>
 </div>
 
 <script>
 let currentHours = 24;
 let timelineChart = null;
 
-document.addEventListener('DOMContentLoaded', function() {
-  fetchPrices();
-});
-
-async function fetchPrices() {
-  const el = document.getElementById('priceContent');
-  try {
-    const r = await fetch('/api/prices');
-    const d = await r.json();
-    renderPrices(d);
-  } catch(e) {
-    el.innerHTML = '<div style="color:var(--text2);text-align:center;font-size:0.8rem">⚠️ 無法載入股價</div>';
-  }
-}
-
-function renderPrices(data) {
-  const el = document.getElementById('priceContent');
-  if (!data || !data.data || !data.data.length) {
-    el.innerHTML = '<div style="color:var(--text2);text-align:center;font-size:0.8rem">暫無股價數據</div>';
-    return;
-  }
-
-  const s = data.summary;
-  const now = new Date();
-  const isMarketOpen = now.getHours() >= 9 && now.getHours() < 16 && now.getDay() >= 1 && now.getDay() <= 5;
-  const label = isMarketOpen ? '上半日收報' : '全日收市';
-
-  let html = `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-      <span style="font-size:0.7rem;color:var(--text2)">${s.fetched_at}</span>
-      <span style="font-size:0.7rem;padding:2px 8px;border-radius:4px;background:var(--accent);color:#fff;font-weight:600">${label}</span>
-    </div>
-    <div class="price-summary">
-      <div class="price-stat gain">
-        <span class="num">${s.gainers}</span>
-        <span class="lbl">上升 📈</span>
-      </div>
-      <div class="price-stat loss">
-        <span class="num">${s.losers}</span>
-        <span class="lbl">下跌 📉</span>
-      </div>
-      <div class="price-stat flat">
-        <span class="num">${s.flat}</span>
-        <span class="lbl">持平 ➖</span>
-      </div>
-    </div>`;
-
-  // Top gainer / loser highlights
-  if (s.top_gainer || s.top_loser) {
-    html += '<div class="price-highlight">';
-    if (s.top_gainer) {
-      html += `<div class="price-highlight-item up">
-        <span class="stock">🏆 ${s.top_gainer.code}</span>
-        <span class="chg">+${s.top_gainer.change_pct}%</span>
-        <span style="font-size:0.7rem">${s.top_gainer.name}</span>
-      </div>`;
-    }
-    if (s.top_loser) {
-      html += `<div class="price-highlight-item down">
-        <span class="stock">🐻 ${s.top_loser.code}</span>
-        <span class="chg">${s.top_loser.change_pct}%</span>
-        <span style="font-size:0.7rem">${s.top_loser.name}</span>
-      </div>`;
-    }
-    html += '</div>';
-  }
-
-  // Table split by market
-  html += '<table class="price-table">';
-  
-  // HK stocks
-  const hk = data.data.filter(x => x.market === 'HK' && x.close);
-  if (hk.length) {
-    html += '<tr><td class="price-mkt-label" colspan="4">🇭🇰 港股</td></tr>';
-    hk.forEach(x => {
-      const cls = x.change_pct > 0 ? 'pos' : (x.change_pct < 0 ? 'neg' : '');
-      html += `<tr class="mkt-hk">
-        <td class="code">${x.code.replace('.HK','')}</td>
-        <td class="name">${x.name}</td>
-        <td class="close">${x.close}</td>
-        <td class="chg ${cls}">${x.change_pct > 0 ? '+' : ''}${x.change_pct}%</td>
-      </tr>`;
-    });
-  }
-  
-  // US stocks
-  const us = data.data.filter(x => x.market === 'US' && x.close);
-  if (us.length) {
-    html += '<tr><td class="price-mkt-label" colspan="4">🇺🇸 美股</td></tr>';
-    us.forEach(x => {
-      const cls = x.change_pct > 0 ? 'pos' : (x.change_pct < 0 ? 'neg' : '');
-      html += `<tr class="mkt-us">
-        <td class="code">${x.code}</td>
-        <td class="name">${x.name}</td>
-        <td class="close">${x.close}</td>
-        <td class="chg ${cls}">${x.change_pct > 0 ? '+' : ''}${x.change_pct}%</td>
-      </tr>`;
-    });
-  }
-
-  html += '</table>';
-  html += '<div style="text-align:center;margin-top:10px"><a href="/settings" style="font-size:0.75rem;color:var(--accent);text-decoration:none">⚙️ 設定自選股</a></div>';
-
-  el.innerHTML = html;
-}
-
 async function fetchJSON(url) {
   const r = await fetch(url);
   return r.json();
-}
-
-function toggleNews() {
-  const h = document.querySelector('.collapsible');
-  const c = document.querySelector('.collapsible-content');
-  h.classList.toggle('collapsed');
-  c.classList.toggle('hidden');
 }
 
 function renderHot(data) {
@@ -280,7 +130,7 @@ function renderTimeline(data) {
   const textColor = style.getPropertyValue('--text2').trim();
   timelineChart = new Chart(ctx, {
     type: 'line',
-    data: { labels, datasets: [{ label: '股票提及數', data: values, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', fill: true, tension: 0.3, pointRadius: 4 }] },
+    data: { labels, datasets: [{ label: '股票提及數', data: values, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', fill: true, tension: 0.3, pointRadius: 3 }] },
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: textColor, font: { size: 10 } } }, y: { ticks: { color: textColor, font: { size: 10 } }, beginAtZero: true } } }
   });
 }
@@ -292,7 +142,7 @@ function renderSources(data) {
 function renderRecent(data) {
   document.getElementById('newsList').innerHTML = data.map(d => {
     const date = d.published_at ? new Date(d.published_at).toLocaleString() : '';
-    const tags = d.related_stocks.map(s => `<span class="tag">${s.stock_code}</span>`).join('');
+    const tags = (d.related_stocks || []).map(s => `<span class="tag">${s.stock_code || s.stock_code}</span>`).join('');
     return `<div class="news-item"><a href="${d.link}" target="_blank">${d.title}</a><div class="meta">${d.source} · ${date}</div>${tags ? '<div class="tags">' + tags + '</div>' : ''}</div>`;
   }).join('');
 }

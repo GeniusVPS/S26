@@ -38,6 +38,10 @@ def news_page():
 def settings():
     return send_from_directory(".", "settings.html")
 
+@app.route("/more")
+def more():
+    return send_from_directory(".", "more.html")
+
 @app.route("/api/config", methods=["GET", "POST"])
 def api_config():
     if request.method == "POST":

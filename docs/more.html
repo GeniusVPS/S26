@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>📊 S26 更多</title>
+<style>
+:root { --bg: #f5f5f5; --card: #ffffff; --text: #1a1a1a; --text2: #666; --accent: #2563eb; --border: #e5e5e5; }
+@media (prefers-color-scheme: dark) { :root { --bg: #0f0f0f; --card: #1a1a1a; --text: #e5e5e5; --text2: #999; --accent: #60a5fa; --border: #333; } }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); padding: 12px; max-width: 480px; margin: 0 auto; }
+h1 { font-size: 1.4rem; margin-bottom: 12px; }
+.card { background: var(--card); border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+.price-summary { display: flex; gap: 8px; margin-bottom: 12px; }
+.price-stat { flex: 1; text-align: center; padding: 10px 4px; border-radius: 10px; font-size: 0.75rem; font-weight: 500; }
+.price-stat.gain { background: #e8f5e9; color: #2e7d32; }
+.price-stat.loss { background: #ffebee; color: #c62828; }
+.price-stat.flat { background: #f5f5f5; color: #666; }
+.price-stat .num { font-size: 1.5rem; font-weight: 700; display: block; }
+.price-stat .lbl { font-size: 0.65rem; opacity: 0.7; }
+@media (prefers-color-scheme: dark) {
+  .price-stat.gain { background: #1b3a1b; color: #81c784; }
+  .price-stat.loss { background: #3a1b1b; color: #e57373; }
+  .price-stat.flat { background: #2a2a2a; color: #999; }
+}
+.price-highlight { display: flex; gap: 8px; margin-bottom: 12px; }
+.price-highlight-item { flex: 1; padding: 10px; border-radius: 10px; font-size: 0.75rem; }
+.price-highlight-item.up { background: #e8f5e9; color: #2e7d32; }
+.price-highlight-item.down { background: #ffebee; color: #c62828; }
+.price-highlight-item .stock { font-weight: 700; font-size: 0.9rem; display: block; }
+.price-highlight-item .chg { font-size: 0.8rem; }
+@media (prefers-color-scheme: dark) {
+  .price-highlight-item.up { background: #1b3a1b; color: #81c784; }
+  .price-highlight-item.down { background: #3a1b1b; color: #e57373; }
+}
+.price-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+.price-table td { padding: 6px 4px; border-bottom: 1px solid var(--border); }
+.price-table tr:last-child td { border-bottom: none; }
+.price-table .code { font-weight: 600; }
+.price-table .name { color: var(--text2); font-size: 0.7rem; }
+.price-table .close { text-align: right; font-weight: 600; }
+.price-table .chg { text-align: right; }
+.price-table .chg.pos { color: #2e7d32; }
+.price-table .chg.neg { color: #c62828; }
+.price-mkt-label { font-size: 0.7rem; font-weight: 600; color: var(--text2); padding: 8px 0 4px; border-bottom: 1px solid var(--border); margin-top: 8px; }
+.price-loading { text-align: center; padding: 20px; color: var(--text2); font-size: 0.85rem; }
+.menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.menu-item { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 20px 12px; background: var(--card); border-radius: 12px; text-decoration: none; color: var(--text); border: 1px solid var(--border); transition: 0.2s; }
+.menu-item:hover { background: var(--border); }
+.menu-item .icon { font-size: 1.8rem; }
+.menu-item .label { font-size: 0.85rem; font-weight: 600; }
+.menu-item .desc { font-size: 0.7rem; color: var(--text2); }
+.back-link { display: inline-flex; align-items: center; gap: 4px; color: var(--accent); text-decoration: none; font-size: 0.9rem; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+
+<a href="/" class="back-link">← 返回熱榜</a>
+<h1>📊 S26 更多</h1>
+
+<div class="menu-grid">
+  <a href="/news" class="menu-item">
+    <div class="icon">📰</div>
+    <div class="label">新聞搜尋</div>
+    <div class="desc">搜尋及篩選新聞</div>
+  </a>
+  <a href="/settings" class="menu-item">
+    <div class="icon">⚙️</div>
+    <div class="label">系統設定</div>
+    <div class="desc">RSS、關鍵字、自選股</div>
+  </a>
+  <a href="/more" class="menu-item" onclick="return false" style="cursor:default;opacity:0.6">
+    <div class="icon">📈</div>
+    <div class="label">股價排行</div>
+    <div class="desc">（下面即睇）</div>
+  </a>
+  <a href="/settings" class="menu-item" style="border-color:var(--accent)">
+    <div class="icon">🔍</div>
+    <div class="label">管理關鍵字</div>
+    <div class="desc">加股票關鍵字</div>
+  </a>
+</div>
+
+<div class="card" style="margin-top:4px">
+  <h3 style="margin-bottom:12px">📊 今日收市</h3>
+  <div id="priceContent" class="price-loading">載入中...</div>
+</div>
+
+<script>
+async function fetchPrices() {
+  const el = document.getElementById('priceContent');
+  try {
+    const r = await fetch('/api/prices');
+    const d = await r.json();
+    renderPrices(d);
+  } catch(e) {
+    el.innerHTML = '<div style="color:var(--text2);text-align:center;font-size:0.8rem">⚠️ 無法載入股價</div>';
+  }
+}
+
+function renderPrices(data) {
+  const el = document.getElementById('priceContent');
+  if (!data || !data.data || !data.data.length) {
+    el.innerHTML = '<div style="color:var(--text2);text-align:center;font-size:0.8rem">暫無股價數據</div>';
+    return;
+  }
+
+  const s = data.summary;
+  const now = new Date();
+  const isMarketOpen = now.getHours() >= 9 && now.getHours() < 16 && now.getDay() >= 1 && now.getDay() <= 5;
+  const label = isMarketOpen ? '上半日收報' : '全日收市';
+
+  let html = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <span style="font-size:0.7rem;color:var(--text2)">${s.fetched_at}</span>
+      <span style="font-size:0.7rem;padding:2px 8px;border-radius:4px;background:var(--accent);color:#fff;font-weight:600">${label}</span>
+    </div>
+    <div class="price-summary">
+      <div class="price-stat gain">
+        <span class="num">${s.gainers}</span>
+        <span class="lbl">上升 📈</span>
+      </div>
+      <div class="price-stat loss">
+        <span class="num">${s.losers}</span>
+        <span class="lbl">下跌 📉</span>
+      </div>
+      <div class="price-stat flat">
+        <span class="num">${s.flat}</span>
+        <span class="lbl">持平 ➖</span>
+      </div>
+    </div>`;
+
+  if (s.top_gainer || s.top_loser) {
+    html += '<div class="price-highlight">';
+    if (s.top_gainer) {
+      html += `<div class="price-highlight-item up">
+        <span class="stock">🏆 ${s.top_gainer.code}</span>
+        <span class="chg">+${s.top_gainer.change_pct}%</span>
+        <span style="font-size:0.7rem">${s.top_gainer.name}</span>
+      </div>`;
+    }
+    if (s.top_loser) {
+      html += `<div class="price-highlight-item down">
+        <span class="stock">🐻 ${s.top_loser.code}</span>
+        <span class="chg">${s.top_loser.change_pct}%</span>
+        <span style="font-size:0.7rem">${s.top_loser.name}</span>
+      </div>`;
+    }
+    html += '</div>';
+  }
+
+  html += '<table class="price-table">';
+  const hk = data.data.filter(x => x.market === 'HK' && x.close);
+  if (hk.length) {
+    html += '<tr><td class="price-mkt-label" colspan="4">🇭🇰 港股</td></tr>';
+    hk.forEach(x => {
+      const cls = x.change_pct > 0 ? 'pos' : (x.change_pct < 0 ? 'neg' : '');
+      html += `<tr><td class="code">${x.code.replace('.HK','')}</td>
+        <td class="name">${x.name}</td>
+        <td class="close">${x.close}</td>
+        <td class="chg ${cls}">${x.change_pct > 0 ? '+' : ''}${x.change_pct}%</td></tr>`;
+    });
+  }
+  const us = data.data.filter(x => x.market === 'US' && x.close);
+  if (us.length) {
+    html += '<tr><td class="price-mkt-label" colspan="4">🇺🇸 美股</td></tr>';
+    us.forEach(x => {
+      const cls = x.change_pct > 0 ? 'pos' : (x.change_pct < 0 ? 'neg' : '');
+      html += `<tr><td class="code">${x.code}</td>
+        <td class="name">${x.name}</td>
+        <td class="close">${x.close}</td>
+        <td class="chg ${cls}">${x.change_pct > 0 ? '+' : ''}${x.change_pct}%</td></tr>`;
+    });
+  }
+  html += '</table>';
+  el.innerHTML = html;
+}
+
+fetchPrices();
+</script>
+</body>
+</html>
