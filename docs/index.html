@@ -295,10 +295,40 @@ async function loadSources() {
 
 async function loadAll() {
   try {
-    await Promise.all([loadHot(), loadTimeline(), loadSources()]);
+    await Promise.all([loadHot(), loadTimeline(), loadSources(), loadSentiment()]);
   } catch(e) {
     document.getElementById('hotList').innerHTML = '<div style="color:var(--text2);font-size:0.85rem">⚠️ 無法載入數據</div>';
   }
+}
+
+// ─── Sentiment rendering ───
+function renderSentiment(data) {
+  const overview = document.getElementById('sentimentOverview');
+  const bars = document.getElementById('sentimentBars');
+  const stocks = document.getElementById('sentimentStocks');
+  if (!data) { overview.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text2)">暫無情緒數據</div>'; return; }
+  const s = data.overall || data.sentiment || {};
+  const score = (data.score ?? data.sentiment_score ?? 0);
+  const mood = data.mood || data.sentiment_mood || '😐 中性';
+  const total = s.total || (s.positive + s.neutral + s.negative) || 0;
+  const posPct = total ? Math.round(s.positive / total * 100) : 0;
+  const neuPct = total ? Math.round(s.neutral / total * 100) : 0;
+  const negPct = total ? Math.round(s.negative / total * 100) : 0;
+  overview.innerHTML = '<div style="text-align:center;padding:12px 0"><div style="font-size:2.5rem">' + mood.split(' ')[0] + '</div><div style="font-size:1.3rem;font-weight:700;margin:4px 0">' + mood + '</div><div style="font-size:1.8rem;font-weight:800;color:' + (score >= 0 ? '#22c55e' : '#ef4444') + '">' + (score > 0 ? '+' : '') + score + '</div><div style="font-size:0.8rem;color:var(--text2)">情緒指數（-100~+100）</div></div>';
+  bars.innerHTML = '<div style="display:flex;height:28px;border-radius:8px;overflow:hidden;margin-bottom:8px"><div style="flex:' + negPct + ';background:#ef4444;display:flex;align-items:center;justify-content:center;color:#fff;font-size:0.75rem;font-weight:600;min-width:fit-content;padding:0 6px">😡 ' + negPct + '%</div><div style="flex:' + neuPct + ';background:#9ca3af;display:flex;align-items:center;justify-content:center;color:#fff;font-size:0.75rem;font-weight:600;min-width:fit-content;padding:0 6px">😐 ' + neuPct + '%</div><div style="flex:' + posPct + ';background:#22c55e;display:flex;align-items:center;justify-content:center;color:#fff;font-size:0.75rem;font-weight:600;min-width:fit-content;padding:0 6px">😊 ' + posPct + '%</div></div><div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--text2)"><span>' + s.negative + ' 篇悲觀</span><span>' + s.neutral + ' 篇中性</span><span>' + s.positive + ' 篇樂觀</span></div>';
+  const stockList = data.stocks || [];
+  if (stockList.length > 0) {
+    stocks.innerHTML = stockList.slice(0,8).map(function(st) {
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:0.85rem"><span style="font-weight:600;min-width:80px">' + st.code + '</span><span style="flex:1;color:var(--text2)">' + (st.name || '') + '</span><span style="color:' + (st.score >= 0 ? '#22c55e' : '#ef4444') + ';font-weight:700">' + (st.score > 0 ? '+' : '') + st.score + '</span><span style="font-size:0.75rem;color:var(--text2);margin-left:8px">' + st.total + '篇</span></div>';
+    }).join('');
+  } else {
+    stocks.innerHTML = '<div style="text-align:center;padding:12px;color:var(--text2)">暫無個股情緒數據</div>';
+  }
+}
+
+async function loadSentiment() {
+  const data = await getJSON('/api/sentiment?hours=' + currentHours);
+  renderSentiment(data);
 }
 
 // ─── Events ───
