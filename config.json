@@ -1,6 +1,6 @@
 {
   "collector": {
-    "interval_minutes": 15,
+    "interval_minutes": 10,
     "rss_sources": [],
     "google_news_url": "https://news.google.com/rss/search?q=港股&hl=zh-TW&gl=HK&ceid=HK:zh-Hant",
     "google_stock_keywords": [

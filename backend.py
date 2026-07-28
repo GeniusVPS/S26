@@ -411,5 +411,74 @@ def api_sources_test():
         return jsonify({"ok": False, "error": str(e)})
 
 
+
+
+@app.route("/api/sentiment")
+def api_sentiment():
+    """Market sentiment overview"""
+    db = get_db()
+    hours = request.args.get("hours", 24, type=int)
+    
+    # Overall stats
+    total = db.execute("SELECT COUNT(*) FROM news WHERE sentiment IS NOT NULL").fetchone()[0]
+    pos = db.execute("SELECT COUNT(*) FROM news WHERE sentiment='positive'").fetchone()[0]
+    neu = db.execute("SELECT COUNT(*) FROM news WHERE sentiment='neutral'").fetchone()[0]
+    neg = db.execute("SELECT COUNT(*) FROM news WHERE sentiment='negative'").fetchone()[0]
+    
+    pos_pct = round(pos / total * 100, 1) if total else 0
+    neg_pct = round(neg / total * 100, 1) if total else 0
+    neut_pct = round(neu / total * 100, 1) if total else 0
+    
+    score = round(pos_pct - neg_pct, 1)
+    
+    # Determine market mood
+    if score > 15:
+        mood = "😊 樂觀"
+    elif score > 5:
+        mood = "🙂 偏樂觀"
+    elif score > -5:
+        mood = "😐 中性"
+    elif score > -15:
+        mood = "😟 偏悲觀"
+    else:
+        mood = "😨 悲觀"
+    
+    # Sentiment by stock (no stocks table — use news_stocks + company_name)
+    stock_rows = db.execute("""
+        SELECT ns.stock_code, ns.company_name,
+               COUNT(*) as total,
+               SUM(CASE WHEN n.sentiment='positive' THEN 1 ELSE 0 END) as pos,
+               SUM(CASE WHEN n.sentiment='neutral' THEN 1 ELSE 0 END) as neu,
+               SUM(CASE WHEN n.sentiment='negative' THEN 1 ELSE 0 END) as neg
+        FROM news_stocks ns
+        JOIN news n ON n.id = ns.news_id
+        WHERE n.sentiment IS NOT NULL
+        GROUP BY ns.stock_code
+        HAVING total > 5
+        ORDER BY total DESC LIMIT 10
+    """).fetchall()
+    
+    stocks = []
+    for r in stock_rows:
+        s_total = r[2]
+        s_pos = r[3] or 0
+        s_neu = r[4] or 0
+        s_neg = r[5] or 0
+        s_score = round((s_pos - s_neg) / s_total * 100, 1) if s_total else 0
+        stocks.append({
+            "code": r[0], "name": r[1], "total": s_total,
+            "positive": s_pos, "neutral": s_neu, "negative": s_neg,
+            "score": s_score
+        })
+    
+    db.close()
+    
+    return jsonify({
+        "overall": {"positive": pos, "neutral": neu, "negative": neg, "total": total},
+        "percentages": {"positive": pos_pct, "neutral": neut_pct, "negative": neg_pct},
+        "score": score,
+        "mood": mood,
+        "stocks": stocks
+    })
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8501, debug=False)

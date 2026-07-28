@@ -117,6 +117,24 @@ stats = {
         "neutral": sentiment_stats["neutral"] or 0
     }
 }
+
+# Sentiment score: positive% - negative%
+pos_pct = stats["sentiment"]["positive"]
+neg_pct = stats["sentiment"]["negative"]
+total_s = pos_pct + neg_pct + stats["sentiment"]["neutral"]
+sentiment_score = round((pos_pct - neg_pct) / total_s * 100, 1) if total_s > 0 else 0
+if sentiment_score > 15:
+    mood = "😊 樂觀"
+elif sentiment_score > 5:
+    mood = "🙂 偏樂觀"
+elif sentiment_score > -5:
+    mood = "😐 中性"
+elif sentiment_score > -15:
+    mood = "😟 偏悲觀"
+else:
+    mood = "😨 悲觀"
+stats["sentiment_score"] = sentiment_score
+stats["sentiment_mood"] = mood
 with open(os.path.join(DATA_DIR, "stats.json"), "w") as f:
     json.dump(stats, f, ensure_ascii=False)
 

@@ -136,6 +136,18 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; b
     </div>
   </div>
 
+  <!-- Page 4: Sentiment ──── -->
+  <div class="page" id="page3">
+    <div class="card">
+      <div class="card-title">🧠 市場情緒</div>
+      <div id="sentimentOverview"></div>
+      <div id="sentimentGauge" style="text-align:center;margin:16px 0"></div>
+      <div class="sentiment-bars" id="sentimentBars" style="margin-bottom:16px"></div>
+      <div style="font-size:0.8rem;color:var(--text2);margin-bottom:8px">📰 個股情緒排名</div>
+      <div id="sentimentStocks"></div>
+    </div>
+  </div>
+
 </div>
 
 <!-- ═══ Drawer overlay ═══ -->
@@ -156,6 +168,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; b
     </button>
     <button class="drawer-item" data-page="2">
       <span class="icon">📡</span> 新聞來源
+    </button>
+    <button class="drawer-item" data-page="3">
+      <span class="icon">🧠</span> 市場情緒
     </button>
   </div>
   <div class="drawer-footer">
@@ -189,7 +204,7 @@ function getJSON(path) {
 
 // ─── State ───
 let currentPage = 0;
-const pages = ['page0', 'page1', 'page2'];
+const pages = ['page0', 'page1', 'page2', 'page3'];
 let timelineChart = null;
 let currentHours = 24;
 
