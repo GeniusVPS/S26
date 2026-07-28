@@ -133,6 +133,29 @@ elif sentiment_score > -15:
     mood = "😟 偏悲觀"
 else:
     mood = "😨 悲觀"
+# Stock-level sentiment
+stock_sent = query("""
+    SELECT ns.stock_code, ns.company_name,
+           COUNT(*) as total,
+           SUM(CASE WHEN n.sentiment = 'positive' THEN 1 ELSE 0 END) as pos,
+           SUM(CASE WHEN n.sentiment = 'neutral' THEN 1 ELSE 0 END) as neu,
+           SUM(CASE WHEN n.sentiment = 'negative' THEN 1 ELSE 0 END) as neg
+    FROM news_stocks ns JOIN news n ON ns.news_id = n.id
+    WHERE n.sentiment IS NOT NULL
+    GROUP BY ns.stock_code
+    HAVING total > 5
+    ORDER BY total DESC LIMIT 10
+""")
+stocks_with_sentiment = [{
+    "code": r["stock_code"],
+    "name": r["company_name"],
+    "total": r["total"],
+    "positive": r["pos"],
+    "neutral": r["neu"],
+    "negative": r["neg"],
+    "score": round((r["pos"] - r["neg"]) / r["total"] * 100, 1)
+} for r in stock_sent]
+stats["stocks"] = stocks_with_sentiment
 stats["sentiment_score"] = sentiment_score
 stats["sentiment_mood"] = mood
 with open(os.path.join(DATA_DIR, "stats.json"), "w") as f:
