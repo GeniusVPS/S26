@@ -269,58 +269,39 @@ function renderHot(data) {
   const el = document.getElementById('hotList');
   if (!data.length) { el.innerHTML = '<div style="color:var(--text2);font-size:0.85rem">暫無數據</div>'; return; }
   const max = Math.max(...data.map(d => d.count));
-  el.innerHTML = data.map(function(d) {
-    var code = d.code || d.stock_code || '';
-    var name = d.name || d.company_name || '';
-    var cnt = d.count || 0;
-    var sector = d.sector || d.sub || '';
-    var price = d.price;
-    var chg = d.change_pct;
-    var sent = d.sentiment_score;
-    var chgCls = chg != null ? (chg >= 0 ? 'up' : 'down') : '';
-    var chgArrow = chg != null ? (chg >= 0 ? '\u25B2' : '\u25BC') : '';
-    var chgTxt = chg != null ? ' ' + Math.abs(chg).toFixed(1) + '%' : '';
-    var priceTxt = price != null ? '$' + price.toFixed(2) : '';
-    var sentTxt = sent != null ? (sent >= 0 ? '+' : '') + sent.toFixed(0) : '';
-    var sentCls = sent != null ? (sent > 0 ? '#22c55e' : sent < 0 ? '#ef4444' : '#6b7280') : '#6b7280';
-    var pct = Math.min((cnt / max * 100).toFixed(0), 100);
-    var sectorHtml = sector ? '<span class="stock-sector">' + sector + '</span>' : '';
-    var priceHtml = priceTxt ? '<span class="stock-price">' + priceTxt + '</span>' : '';
-    var chgHtml = chgCls ? '<span class="stock-change ' + chgCls + '">' + chgArrow + chgTxt + '</span>' : '';
-    var sentHtml = sentTxt ? '<span class="stock-sentiment" style="color:' + sentCls + '">🧠 情绪 ' + sentTxt + '</span>' : '';
-    return '<div class="stock-card" onclick="window.open(\'https://finance.yahoo.com/quote/' + encodeURIComponent(code) + '\')">'
-      + '<div class="stock-card-head">'
-      + '<span class="stock-code">' + code + '</span>'
-      + '<span class="stock-name">' + name + '</span>'
-      + '<span class="stock-count">' + cnt + '\u7BC7</span>'
-      + '</div>'
-      + '<div class="stock-card-body">'
-      + sectorHtml
-      + priceHtml
-      + chgHtml
-      + '</div>'
-      + '<div class="stock-card-footer">'
-      + sentHtml
-      + '<span class="bar-track"><div class="bar-fill" style="width:' + pct + '%"></div></span>'
-      + '</div>'
-      + '</div>';
+  el.innerHTML = data.map(function(d){
+    const code = d.code || d.stock_code || '';
+    const name = d.name || d.company_name || '';
+    const cnt = d.count || 0;
+    const sector = d.sector || d.sub || '';
+    const price = d.price;
+    const chg = d.change_pct;
+    const sent = d.sentiment_score;
+    const chgCls = chg != null ? (chg >= 0 ? 'up' : 'down') : '';
+    const chgArrow = chg != null ? (chg >= 0 ? String.fromCodePoint(0x25B2) : String.fromCodePoint(0x25BC)) : '';
+    const chgTxt = chg != null ? ' ' + Math.abs(chg).toFixed(1) + '%' : '';
+    const priceTxt = price != null ? '$' + price.toFixed(2) : '';
+    const sentTxt = sent != null ? (sent >= 0 ? '+' : '') + sent.toFixed(0) : '';
+    const sentCls = sent != null ? (sent > 0 ? '#22c55e' : sent < 0 ? '#ef4444' : '#6b7280') : '#6b7280';
+    const pct = Math.min((cnt / max * 100).toFixed(0), 100);
+    const sectorHtml = sector ? '<span class="stock-sector">' + sector + '</span>' : '';
+    const priceHtml = priceTxt ? '<span class="stock-price">' + priceTxt + '</span>' : '';
+    const chgHtml = chgCls ? '<span class="stock-change ' + chgCls + '">' + chgArrow + chgTxt + '</span>' : '';
+    const sentHtml = sentTxt ? '<span class="stock-sentiment" style="color:' + sentCls + '"><span class="emoji-brain"></span> 情绪 ' + sentTxt + '</span>' : '';
+    const url = 'https://finance.yahoo.com/quote/' + encodeURIComponent(code);
+    return '<div class="stock-card" data-url="' + url + '">' +
+      '<div class="stock-card-head">' +
+      '<span class="stock-code">' + code + '</span>' +
+      '<span class="stock-name">' + name + '</span>' +
+      '<span class="stock-count">' + cnt + '<span class="unit-pian"></span></span>' +
+      '</div>' +
+      '<div class="stock-card-body">' + sectorHtml + priceHtml + chgHtml + '</div>' +
+      '<div class="stock-card-footer">' + sentHtml +
+      '<span class="bar-track"><div class="bar-fill" style="width:' + pct + '%"></div></span>' +
+      '</div>' +
+      '</div>';
   }).join('');
-}function renderTimeline(data) {function renderTimeline(data) {
-  const ctx = document.getElementById('timelineChart');
-  if (!ctx) return;
-  if (timelineChart) timelineChart.destroy();
-  const labels = data.map(d => d.date);
-  const values = data.map(d => d.stock_mentions);
-  const style = getComputedStyle(document.documentElement);
-  const textColor = style.getPropertyValue('--text2').trim();
-  timelineChart = new Chart(ctx, {
-    type: 'line',
-    data: { labels, datasets: [{ label: '股票提及數', data: values, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', fill: true, tension: 0.3, pointRadius: 3 }] },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: textColor, font: { size: 10 } } }, y: { ticks: { color: textColor, font: { size: 10 } }, beginAtZero: true } } }
-  });
-}
-
-function renderSources(data) {
+}function renderSources(data) {
   document.getElementById('sourceList').innerHTML = data.map(d => {
     const label = typeof d === 'string' ? d : (d.source || d.name || d);
     const count = typeof d === 'object' && d ? d.count : null;
@@ -463,6 +444,13 @@ document.addEventListener('touchend', e => {
 
 // ─── Init ───
 loadAll();
+
+document.getElementById('hotList').addEventListener('click', function(e) {
+  var card = e.target.closest('.stock-card');
+  if (card && card.dataset.url) {
+    window.open(card.dataset.url, '_blank');
+  }
+});
 </script>
 </body>
 </html>
