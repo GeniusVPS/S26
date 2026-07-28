@@ -1,7 +1,30 @@
 #!/usr/bin/env python3
 """讀取 news.db → 生成靜態 JSON 放 docs/data/ 俾 GitHub Pages"""
-import sqlite3, json, os, shutil, pathlib
+import sqlite3, json, os, shutil, pathlib, yfinance as yf
 from datetime import datetime, timedelta
+
+# ── Stock sector mapping ──
+SECTORS = {
+    "0700.HK": {"sector": "科技·互聯網", "sub": "社交·遊戲·支付"},
+    "9988.HK": {"sector": "科技·電商", "sub": "電商·雲端·物流"},
+    "1810.HK": {"sector": "消費電子", "sub": "手機·IoT·電動車"},
+    "3690.HK": {"sector": "科技·本地生活", "sub": "外賣·到店·旅遊"},
+    "9618.HK": {"sector": "科技·電商", "sub": "電商·物流·科技"},
+    "1211.HK": {"sector": "汽車·新能源", "sub": "電動車·電池"},
+    "9999.HK": {"sector": "科技·遊戲", "sub": "遊戲·音樂·教育"},
+    "0388.HK": {"sector": "金融", "sub": "交易所·市場數據"},
+    "0005.HK": {"sector": "金融·銀行", "sub": "零售·財富管理"},
+    "9888.HK": {"sector": "科技·互聯網", "sub": "搜尋·AI·自動駕駛"},
+    "1024.HK": {"sector": "半導體", "sub": "AI晶片"},
+    "NVDA":   {"sector": "半導體·AI", "sub": "GPU·AI晶片"},
+    "AAPL":   {"sector": "消費電子", "sub": "iPhone·Mac·服務"},
+    "TSLA":   {"sector": "電動車", "sub": "電動車·能源·AI"},
+    "MSFT":   {"sector": "科技·軟件", "sub": "雲端·Office·AI"},
+    "AMZN":   {"sector": "科技·電商/雲端", "sub": "電商·AWS"},
+    "GOOGL":  {"sector": "科技·互聯網", "sub": "搜尋·廣告·AI"},
+    "META":   {"sector": "科技·社交", "sub": "社交平台·VR·AI"},
+    "BABA":   {"sector": "科技·電商", "sub": "電商·雲端"},
+}
 
 DB_PATH = os.path.expanduser("~/stock-system/news.db")
 OUT_DIR = os.path.expanduser("~/stock-system/docs")
@@ -31,12 +54,88 @@ def query(sql, params=()):
 # === 1. Hot list (24h) ===
 since_hot = (datetime.utcnow() - timedelta(hours=24)).strftime("%Y-%m-%dT%H:%M:%SZ")
 since_recent = (datetime.utcnow() - timedelta(hours=48)).strftime("%Y-%m-%dT%H:%M:%SZ")
-hot = query("""
+hot_raw = query("""
     SELECT ns.stock_code, ns.company_name, COUNT(*) as count
     FROM news_stocks ns JOIN news n ON ns.news_id = n.id
     WHERE n.published_at >= ?
     GROUP BY ns.stock_code ORDER BY count DESC LIMIT ?
 """, (since_hot, TOP_N,))
+
+# Fetch prices for all hot stocks
+tickers = [s["stock_code"] for s in hot_raw]
+price_data = {}
+if tickers:
+    try:
+        prices = yf.download(tickers, period="2d", auto_adjust=True, progress=False)
+        close = prices["Close"] if "Close" in prices.columns else prices.get("Close", None)
+        if close is not None and len(close) > 0:
+            for t in tickers:
+                try:
+                    if len(close) >= 2:
+                        current, prev = close[t].iloc[-1], close[t].iloc[-2]
+                        pct = round((current - prev) / prev * 100, 1)
+                    elif len(close) == 1:
+                        current = close[t].iloc[-1]
+                        prev = None
+                        pct = 0
+                    else:
+                        current = prev = pct = None
+                    price_data[t] = {
+                        "price": round(current, 2) if current else None,
+                        "change_pct": pct
+                    }
+                except:
+                    price_data[t] = {"price": None, "change_pct": None}
+    except Exception as e:
+        print(f"⚠ Price fetch failed: {e}")
+        for t in tickers:
+            price_data[t] = {"price": None, "change_pct": None}
+
+# Build enhanced hot list
+hot = []
+for s in hot_raw:
+    code = s["stock_code"]
+    name = s["company_name"]
+    count = s["count"]
+    
+    # Sentiment for this stock
+    sent = query("""
+        SELECT 
+            COUNT(*) as total,
+            SUM(CASE WHEN n.sentiment = 'positive' THEN 1 ELSE 0 END) as pos,
+            SUM(CASE WHEN n.sentiment = 'neutral' THEN 1 ELSE 0 END) as neu,
+            SUM(CASE WHEN n.sentiment = 'negative' THEN 1 ELSE 0 END) as neg
+        FROM news_stocks ns JOIN news n ON ns.news_id = n.id
+        WHERE ns.stock_code = ? AND n.sentiment IS NOT NULL
+    """, (code,))[0]
+    
+    sent_total = sent["total"]
+    if sent_total > 0:
+        sent_score = round((sent["pos"] - sent["neg"]) / sent_total * 100, 1)
+    else:
+        sent_score = None
+    
+    sector_info = SECTORS.get(code, {"sector": "其他", "sub": ""})
+    
+    # Build summary
+    p = price_data.get(code, {})
+    price_str = f"${p['price']}" if p.get('price') else ""
+    change_str = f"{p['change_pct']:+.1f}%" if p.get('change_pct') is not None else ""
+    sentiment_str = f"🧠 {sent_score}" if sent_score is not None else "🧠 N/A"
+    summary = f"{price_str} {change_str} | {sector_info['sector']} | {sentiment_str}"
+    
+    hot.append({
+        "code": code,
+        "name": name,
+        "count": count,
+        "sector": sector_info["sector"],
+        "sub": sector_info["sub"],
+        "price": p.get("price"),
+        "change_pct": p.get("change_pct"),
+        "sentiment_score": sent_score,
+        "summary": summary.strip()
+    })
+
 with open(os.path.join(DATA_DIR, "hot.json"), "w") as f:
     json.dump(hot, f, ensure_ascii=False)
 

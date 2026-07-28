@@ -79,6 +79,22 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; b
 .drawer-footer { padding: 16px; border-top: 1px solid var(--border); }
 .drawer-footer a { color: var(--text2); text-decoration: none; font-size: 0.85rem; display: flex; align-items: center; gap: 8px; }
 .last-updated { text-align: center; padding: 16px 0 8px; font-size: 0.75rem; color: var(--text3); }
+.stock-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; cursor: pointer; transition: 0.15s; }
+.stock-card:active { background: var(--bg); }
+.stock-card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.stock-code { font-weight: 700; font-size: 0.95rem; color: var(--accent); }
+.stock-name { font-size: 0.85rem; color: var(--text); flex: 1; }
+.stock-count { font-size: 0.8rem; color: var(--text2); background: var(--bg); padding: 2px 8px; border-radius: 10px; }
+.stock-card-body { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.stock-sector { font-size: 0.75rem; color: var(--text3); flex: 1; }
+.stock-price { font-size: 0.85rem; font-weight: 600; color: var(--text); }
+.stock-change { font-size: 0.8rem; font-weight: 600; }
+.stock-change.up { color: #22c55e; }
+.stock-change.down { color: #ef4444; }
+.stock-card-footer { display: flex; align-items: center; gap: 8px; }
+.stock-sentiment { font-size: 0.75rem; }
+.stock-card-footer .bar-track { flex: 1; height: 4px; border-radius: 2px; background: var(--border); overflow: hidden; }
+.stock-card-footer .bar-fill { height: 100%; background: var(--accent); border-radius: 2px; min-width: 0 !important; }
 </style>
 </head>
 <body>
