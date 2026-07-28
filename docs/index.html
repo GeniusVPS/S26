@@ -266,16 +266,41 @@ function renderHot(data) {
   const el = document.getElementById('hotList');
   if (!data.length) { el.innerHTML = '<div style="color:var(--text2);font-size:0.85rem">暫無數據</div>'; return; }
   const max = Math.max(...data.map(d => d.count));
-  el.innerHTML = data.map(d => `
-    <div class="bar-row">
-      <div class="bar-label">${d.stock_code || d.code}</div>
-      <div class="bar-track"><div class="bar-fill" style="width:${(d.count/max*100).toFixed(0)}%">${d.count}</div></div>
-      <div class="bar-label" style="width:auto;margin-left:8px;font-size:0.7rem;color:var(--text2)">${d.company_name || d.name}</div>
-    </div>
-  `).join('');
+  el.innerHTML = data.map(d => {
+    const code = d.code || d.stock_code || '';
+    const name = d.name || d.company_name || '';
+    const cnt = d.count || 0;
+    const sector = d.sector || d.sub || '';
+    const price = d.price;
+    const chg = d.change_pct;
+    const sent = d.sentiment_score;
+    const chg_cls = chg != null ? (chg >= 0 ? 'up' : 'down') : '';
+    const chg_arrow = chg != null ? (chg >= 0 ? '&#9650;' : '&#9660;') : '';
+    const chg_txt = chg != null ? ' ' + Math.abs(chg).toFixed(1) + '%' : '';
+    const price_txt = price != null ? '$' + price.toFixed(2) : '';
+    const sent_txt = sent != null ? (sent >= 0 ? '+' : '') + sent.toFixed(0) : '';
+    const sent_cls = sent != null ? (sent > 0 ? '#22c55e' : sent < 0 ? '#ef4444' : '#6b7280') : '#6b7280';
+    
+    return \`<div class="stock-card" onclick="window.open('https://finance.yahoo.com/quote/' + encodeURIComponent(\'${code}\'), '_blank')">
+      <div class="stock-card-head">
+        <span class="stock-code">\${code}</span>
+        <span class="stock-name">\${name}</span>
+        <span class="stock-count">\${cnt}篇</span>
+      </div>
+      <div class="stock-card-body">
+        ${sector ? '<span class="stock-sector">' + sector + '</span>' : '<span class="stock-sector"></span>'}
+        ${price_txt ? '<span class="stock-price">' + price_txt + '</span>' : ''}
+        ${chg_cls ? '<span class="stock-change ' + chg_cls + '">' + chg_arrow + chg_txt + '</span>' : ''}
+      </div>
+      <div class="stock-card-footer">
+        ${sent_txt ? '<span class="stock-sentiment" style="color:' + sent_cls + '">&#129504; 情绪 ' + sent_txt + '</span>' : ''}
+        <span class="bar-track"><div class="bar-fill" style="width:' + (cnt/max*100).toFixed(0) + '%"></div></span>
+      </div>
+    </div>\`;
+  }).join('');
 }
 
-function renderTimeline(data) {
+function renderTimeline(data) {function renderTimeline(data) {
   const ctx = document.getElementById('timelineChart');
   if (!ctx) return;
   if (timelineChart) timelineChart.destroy();
