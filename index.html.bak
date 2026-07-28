@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>📈 S26 股票熱榜</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #f5f5f5; --card: #ffffff; --text: #1a1a1a; --text2: #666666;
+  --accent: #2563eb; --border: #e5e5e5; --bar: #3b82f6;
+  --menu-top: 56px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f0f0f; --card: #1a1a1a; --text: #e5e5e5; --text2: #999999;
+    --accent: #60a5fa; --border: #333333; --bar: #60a5fa;
+  }
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); padding: 12px; max-width: 480px; margin: 0 auto; }
+
+/* ─── Top bar ─── */
+.top-bar { display: flex; justify-content: space-between; align-items: center; height: 44px; margin-bottom: 4px; }
+.top-bar h1 { font-size: 1.4rem; }
+.menu-btn { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; cursor: pointer; border-radius: 8px; border: none; background: transparent; color: var(--text); user-select: none; -webkit-tap-highlight-color: transparent; }
+.menu-btn:active { background: var(--border); }
+
+/* ─── Page indicator dots ─── */
+.page-dots { display: flex; justify-content: center; gap: 8px; margin-bottom: 8px; }
+.page-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); border: none; cursor: pointer; padding: 0; transition: 0.2s; }
+.page-dot.active { background: var(--accent); width: 24px; border-radius: 4px; }
+
+/* ─── Page container ─── */
+.page-container { position: relative; overflow: hidden; }
+.page { display: none; animation: fadeIn 0.2s ease; }
+.page.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ─── Card ─── */
+.card { background: var(--card); border-radius: 12px; padding: 16px; margin-bottom: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+.card-title { font-size: 0.95rem; font-weight: 600; margin-bottom: 12px; }
+
+/* ─── Range buttons ─── */
+.range-btns { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 12px; }
+.range-btns button { border: 1px solid var(--border); background: var(--card); color: var(--text); border-radius: 6px; padding: 6px 10px; font-size: 0.8rem; cursor: pointer; }
+.range-btns button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+/* ─── Hot ranking bars ─── */
+.bar-row { display: flex; align-items: center; margin-bottom: 8px; }
+.bar-label { width: 70px; font-size: 0.8rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar-track { flex: 1; height: 24px; background: var(--border); border-radius: 4px; overflow: hidden; }
+.bar-fill { height: 100%; background: var(--bar); border-radius: 4px; display: flex; align-items: center; padding-left: 6px; font-size: 0.7rem; color: #fff; min-width: 30px; }
+
+/* ─── Chart ─── */
+.chart-container { position: relative; height: 220px; }
+
+/* ─── Sources ─── */
+.source-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.source-item { background: var(--border); padding: 6px 12px; border-radius: 8px; font-size: 0.8rem; }
+.source-item .count { color: var(--text2); margin-left: 4px; font-size: 0.7rem; }
+
+/* ─── Drawer overlay ─── */
+.drawer-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100; }
+.drawer-overlay.open { display: block; }
+
+/* ─── Drawer menu ─── */
+.drawer { position: fixed; top: 0; right: 0; bottom: 0; width: 240px; background: var(--card); z-index: 101; transform: translateX(105%); transition: transform 0.25s ease; box-shadow: -4px 0 12px rgba(0,0,0,0.15); display: flex; flex-direction: column; }
+.drawer.open { transform: translateX(0); }
+.drawer-header { display: flex; justify-content: space-between; align-items: center; padding: 16px; border-bottom: 1px solid var(--border); }
+.drawer-header h2 { font-size: 1.1rem; }
+.drawer-close { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; cursor: pointer; border-radius: 6px; border: none; background: transparent; color: var(--text); }
+.drawer-close:active { background: var(--border); }
+.drawer-nav { flex: 1; padding: 8px 0; }
+.drawer-item { display: flex; align-items: center; gap: 12px; padding: 14px 16px; font-size: 0.95rem; cursor: pointer; transition: 0.15s; border: none; background: transparent; color: var(--text); width: 100%; text-align: left; }
+.drawer-item:active { background: var(--border); }
+.drawer-item .icon { font-size: 1.2rem; width: 28px; text-align: center; }
+.drawer-item.active-item { background: var(--bg); color: var(--accent); font-weight: 600; }
+.drawer-footer { padding: 16px; border-top: 1px solid var(--border); }
+.drawer-footer a { color: var(--text2); text-decoration: none; font-size: 0.85rem; display: flex; align-items: center; gap: 8px; }
+.last-updated { text-align: center; padding: 16px 0 8px; font-size: 0.75rem; color: var(--text3); }
+.stock-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; cursor: pointer; transition: 0.15s; }
+.stock-card:active { background: var(--bg); }
+.stock-card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.stock-code { font-weight: 700; font-size: 0.95rem; color: var(--accent); }
+.stock-name { font-size: 0.85rem; color: var(--text); flex: 1; }
+.stock-count { font-size: 0.8rem; color: var(--text2); background: var(--bg); padding: 2px 8px; border-radius: 10px; }
+.stock-card-body { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.stock-sector { font-size: 0.75rem; color: var(--text3); flex: 1; }
+.stock-price { font-size: 0.85rem; font-weight: 600; color: var(--text); }
+.stock-change { font-size: 0.8rem; font-weight: 600; }
+.stock-change.up { color: #22c55e; }
+.stock-change.down { color: #ef4444; }
+.stock-card-footer { display: flex; align-items: center; gap: 8px; }
+.stock-sentiment { font-size: 0.75rem; }
+.stock-card-footer .bar-track { flex: 1; height: 4px; border-radius: 2px; background: var(--border); overflow: hidden; }
+.stock-card-footer .bar-fill { height: 100%; background: var(--accent); border-radius: 2px; min-width: 0 !important; }
+</style>
+</head>
+<body>
+
+<!-- ═══ Top bar ═══ -->
+<div class="top-bar">
+  <h1>📈 S26</h1>
+  <button class="menu-btn" id="menuBtn" aria-label="Menu">☰</button>
+</div>
+
+<!-- Page indicator dots -->
+<div class="page-dots" id="pageDots">
+  <button class="page-dot active" data-page="0"></button>
+  <button class="page-dot" data-page="1"></button>
+  <button class="page-dot" data-page="2"></button>
+</div>
+
+<!-- ═══ Pages ═══ -->
+<div class="page-container">
+
+  <!-- Page 1: Hot Ranking ──── -->
+  <div class="page active" id="page0">
+    <div class="range-btns" data-range-group="hot">
+      <button data-hours="6">6h</button>
+      <button data-hours="12">12h</button>
+      <button data-hours="24" class="active">24h</button>
+      <button data-hours="48">48h</button>
+      <button data-hours="72">72h</button>
+    </div>
+    <div class="card">
+      <div class="card-title">🔥 熱門排行</div>
+      <div id="hotList"></div>
+    </div>
+      <div class="last-updated" id="lastUpdated0"></div>
+  </div>
+
+  <!-- Page 2: Timeline Chart ──── -->
+  <div class="page" id="page1">
+    <div class="range-btns" data-range-group="timeline">
+      <button data-hours="6">6h</button>
+      <button data-hours="12">12h</button>
+      <button data-hours="24" class="active">24h</button>
+      <button data-hours="48">48h</button>
+      <button data-hours="72">72h</button>
+    </div>
+    <div class="card">
+      <div class="card-title">📊 提及趨勢</div>
+      <div class="chart-container"><canvas id="timelineChart"></canvas></div>
+    </div>
+      <div class="last-updated" id="lastUpdated1"></div>
+  </div>
+
+  <!-- Page 3: Sources ──── -->
+  <div class="page" id="page2">
+    <div class="card">
+      <div class="card-title">📡 新聞來源</div>
+      <div class="source-list" id="sourceList"></div>
+    </div>
+      <div class="last-updated" id="lastUpdated2"></div>
+  </div>
+
+  <!-- Page 4: Sentiment ──── -->
+  <div class="page" id="page3">
+    <div class="card">
+      <div class="card-title">🧠 市場情緒</div>
+      <div id="sentimentOverview"></div>
+      <div id="sentimentGauge" style="text-align:center;margin:16px 0"></div>
+      <div class="sentiment-bars" id="sentimentBars" style="margin-bottom:16px"></div>
+      <div style="font-size:0.8rem;color:var(--text2);margin-bottom:8px">📰 個股情緒排名</div>
+      <div id="sentimentStocks"></div>
+    </div>
+      <div class="last-updated" id="lastUpdated3"></div>
+  </div>
+
+</div>
+
+<!-- ═══ Drawer overlay ═══ -->
+<div class="drawer-overlay" id="drawerOverlay"></div>
+
+<!-- ═══ Drawer menu ═══ -->
+<div class="drawer" id="drawer">
+  <div class="drawer-header">
+    <h2>📈 S26</h2>
+    <button class="drawer-close" id="drawerClose">✕</button>
+  </div>
+  <div class="drawer-nav">
+    <button class="drawer-item active-item" data-page="0">
+      <span class="icon">🔥</span> 熱門排行
+    </button>
+    <button class="drawer-item" data-page="1">
+      <span class="icon">📊</span> 提及趨勢
+    </button>
+    <button class="drawer-item" data-page="2">
+      <span class="icon">📡</span> 新聞來源
+    </button>
+    <button class="drawer-item" data-page="3">
+      <span class="icon">🧠</span> 市場情緒
+    </button>
+  </div>
+  <div class="drawer-footer">
+    <a href="more">📊 更多（股價·新聞·設定）</a>
+  </div>
+</div>
+
+<script>
+// === Auto-detect: local (Flask API) vs GitHub Pages (static JSON) ===
+const BASE = location.hostname === 'geniusvps.github.io' ? '/S26' : '';
+const API_HOST = location.hostname === 'geniusvps.github.io' ? `https://geniusvps.github.io${BASE}/data` : '';
+
+function getJSON(path) {
+  let url;
+  if (API_HOST) {
+    if (path.startsWith('/api/hot')) url = `${API_HOST}/hot.json`;
+    else if (path.startsWith('/api/timeline')) url = `${API_HOST}/timeline.json`;
+    else url = `${API_HOST}/stats.json`;
+  } else {
+    url = path;
+  }
+  return fetch(url).then(async r => {
+    const data = await r.json();
+    if (API_HOST && path.startsWith('/api/sources')) {
+      if (data.sources) return data.sources.map(s => (typeof s === 'string') ? s : s.source);
+      return [];
+    }
+    return data;
+  });
+}
+
+// ─── State ───
+let currentPage = 0;
+const pages = ['page0', 'page1', 'page2', 'page3'];
+let timelineChart = null;
+let currentHours = 24;
+
+// ─── Page navigation ───
+function goToPage(idx) {
+  // Update pages
+  pages.forEach((id, i) => {
+    document.getElementById(id).classList.toggle('active', i === idx);
+  });
+  // Update dots
+  document.querySelectorAll('.page-dot').forEach((dot, i) => {
+    dot.classList.toggle('active', i === idx);
+  });
+  // Update drawer items
+  document.querySelectorAll('.drawer-item').forEach((item, i) => {
+    item.classList.toggle('active-item', i === idx);
+  });
+  currentPage = idx;
+
+  // Re-render timeline if needed (Chart.js needs the canvas visible)
+  if (idx === 1 && timelineChart) loadTimeline();
+
+  closeDrawer();
+}
+
+// ─── Drawer ───
+function openDrawer() {
+  document.getElementById('drawerOverlay').classList.add('open');
+  document.getElementById('drawer').classList.add('open');
+}
+function closeDrawer() {
+  document.getElementById('drawerOverlay').classList.remove('open');
+  document.getElementById('drawer').classList.remove('open');
+}
+
+// ─── Rendering ───
+function renderHot(data) {
+  const el = document.getElementById('hotList');
+  if (!data.length) { el.innerHTML = '<div style="color:var(--text2);font-size:0.85rem">暫無數據</div>'; return; }
+  const max = Math.max(...data.map(d => d.count));
+  el.innerHTML = data.map(function(d){
+    const code = d.code || d.stock_code || '';
+    const name = d.name || d.company_name || '';
+    const cnt = d.count || 0;
+    const sector = d.sector || d.sub || '';
+    const price = d.price;
+    const chg = d.change_pct;
+    const sent = d.sentiment_score;
+    const chgCls = chg != null ? (chg >= 0 ? 'up' : 'down') : '';
+    const chgArrow = chg != null ? (chg >= 0 ? String.fromCodePoint(0x25B2) : String.fromCodePoint(0x25BC)) : '';
+    const chgTxt = chg != null ? ' ' + Math.abs(chg).toFixed(1) + '%' : '';
+    const priceTxt = price != null ? '$' + price.toFixed(2) : '';
+    const sentTxt = sent != null ? (sent >= 0 ? '+' : '') + sent.toFixed(0) : '';
+    const sentCls = sent != null ? (sent > 0 ? '#22c55e' : sent < 0 ? '#ef4444' : '#6b7280') : '#6b7280';
+    const pct = Math.min((cnt / max * 100).toFixed(0), 100);
+    const sectorHtml = sector ? '<span class="stock-sector">' + sector + '</span>' : '';
+    const priceHtml = priceTxt ? '<span class="stock-price">' + priceTxt + '</span>' : '';
+    const chgHtml = chgCls ? '<span class="stock-change ' + chgCls + '">' + chgArrow + chgTxt + '</span>' : '';
+    const sentHtml = sentTxt ? '<span class="stock-sentiment" style="color:' + sentCls + '"><span class="emoji-brain"></span> 情绪 ' + sentTxt + '</span>' : '';
+    const url = 'https://finance.yahoo.com/quote/' + encodeURIComponent(code);
+    return '<div class="stock-card" data-url="' + url + '">' +
+      '<div class="stock-card-head">' +
+      '<span class="stock-code">' + code + '</span>' +
+      '<span class="stock-name">' + name + '</span>' +
+      '<span class="stock-count">' + cnt + '<span class="unit-pian"></span></span>' +
+      '</div>' +
+      '<div class="stock-card-body">' + sectorHtml + priceHtml + chgHtml + '</div>' +
+      '<div class="stock-card-footer">' + sentHtml +
+      '<span class="bar-track"><div class="bar-fill" style="width:' + pct + '%"></div></span>' +
+      '</div>' +
+      '</div>';
+  }).join('');
+}function renderSources(data) {
+  document.getElementById('sourceList').innerHTML = data.map(d => {
+    const label = typeof d === 'string' ? d : (d.source || d.name || d);
+    const count = typeof d === 'object' && d ? d.count : null;
+    return `<div class="source-item">${label}${count !== null ? `<span class="count">${count}</span>` : ''}</div>`;
+  }).join('');
+}
+
+// ─── Data loading ───
+async function loadHot() {
+  const data = await getJSON(`/api/hot?hours=${currentHours}`);
+  renderHot(data);
+}
+
+async function loadTimeline() {
+  const data = await getJSON(`/api/timeline?hours=${currentHours}`);
+  renderTimeline(data);
+}
+
+async function loadSources() {
+  const data = await getJSON('/api/sources');
+  renderSources(data);
+}
+
+function updateLastUpdated() {
+  const now = new Date();
+  const hk = new Date(now.toLocaleString('en-US', {timeZone:'Asia/Hong_Kong'}));
+  const time = hk.toLocaleString('zh-HK', {hour:'2-digit',minute:'2-digit',hour12:false});
+  const date = hk.toLocaleDateString('zh-HK', {month:'2-digit',day:'2-digit'});
+  const text = '🔄 ' + date + ' ' + time + ' 更新';
+  ['lastUpdated0','lastUpdated1','lastUpdated2','lastUpdated3'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = text;
+  });
+}
+async function loadAll() {
+  try {
+    const results = await Promise.allSettled([loadHot(), loadTimeline(), loadSources(), loadSentiment()]);
+    results.forEach((r, i) => {
+      if (r.status === 'rejected') console.warn('Section', i, 'failed:', r.reason);
+    });
+  } catch(e) {
+    console.error('LoadAll error:', e);
+  }
+  updateLastUpdated();
+}
+
+// ─── Sentiment rendering ───
+function renderSentiment(data) {
+  const overview = document.getElementById('sentimentOverview');
+  const bars = document.getElementById('sentimentBars');
+  const stocks = document.getElementById('sentimentStocks');
+  if (!data) { overview.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text2)">暫無情緒數據</div>'; return; }
+  const s = data.overall || data.sentiment || {};
+  const score = (data.score ?? data.sentiment_score ?? 0);
+  const mood = data.mood || data.sentiment_mood || '😐 中性';
+  const total = s.total || (s.positive + s.neutral + s.negative) || 0;
+  const posPct = total ? Math.round(s.positive / total * 100) : 0;
+  const neuPct = total ? Math.round(s.neutral / total * 100) : 0;
+  const negPct = total ? Math.round(s.negative / total * 100) : 0;
+  overview.innerHTML = '<div style="text-align:center;padding:12px 0"><div style="font-size:2.5rem">' + mood.split(' ')[0] + '</div><div style="font-size:1.3rem;font-weight:700;margin:4px 0">' + mood + '</div><div style="font-size:1.8rem;font-weight:800;color:' + (score >= 0 ? '#22c55e' : '#ef4444') + '">' + (score > 0 ? '+' : '') + score + '</div><div style="font-size:0.8rem;color:var(--text2)">情緒指數（-100~+100）</div></div>';
+  bars.innerHTML = '<div style="display:flex;height:28px;border-radius:8px;overflow:hidden;margin-bottom:8px"><div style="flex:' + negPct + ';background:#ef4444;display:flex;align-items:center;justify-content:center;color:#fff;font-size:0.75rem;font-weight:600;min-width:fit-content;padding:0 6px">😡 ' + negPct + '%</div><div style="flex:' + neuPct + ';background:#9ca3af;display:flex;align-items:center;justify-content:center;color:#fff;font-size:0.75rem;font-weight:600;min-width:fit-content;padding:0 6px">😐 ' + neuPct + '%</div><div style="flex:' + posPct + ';background:#22c55e;display:flex;align-items:center;justify-content:center;color:#fff;font-size:0.75rem;font-weight:600;min-width:fit-content;padding:0 6px">😊 ' + posPct + '%</div></div><div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--text2)"><span>' + s.negative + ' 篇悲觀</span><span>' + s.neutral + ' 篇中性</span><span>' + s.positive + ' 篇樂觀</span></div>';
+  const stockList = data.stocks || [];
+  if (stockList.length > 0) {
+    stocks.innerHTML = stockList.slice(0,8).map(function(st) {
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:0.85rem"><span style="font-weight:600;min-width:80px">' + st.code + '</span><span style="flex:1;color:var(--text2)">' + (st.name || '') + '</span><span style="color:' + (st.score >= 0 ? '#22c55e' : '#ef4444') + ';font-weight:700">' + (st.score > 0 ? '+' : '') + st.score + '</span><span style="font-size:0.75rem;color:var(--text2);margin-left:8px">' + st.total + '篇</span></div>';
+    }).join('');
+  } else {
+    stocks.innerHTML = '<div style="text-align:center;padding:12px;color:var(--text2)">暫無個股情緒數據</div>';
+  }
+}
+
+async function loadSentiment() {
+  const data = await getJSON('/api/sentiment?hours=' + currentHours);
+  renderSentiment(data);
+}
+
+// ─── Events ───
+
+// Menu button
+document.getElementById('menuBtn').addEventListener('click', openDrawer);
+
+// Drawer overlay (close on tap)
+document.getElementById('drawerOverlay').addEventListener('click', closeDrawer);
+
+// Drawer close button
+document.getElementById('drawerClose').addEventListener('click', closeDrawer);
+
+// Drawer nav items
+document.querySelectorAll('.drawer-item').forEach(item => {
+  item.addEventListener('click', () => goToPage(parseInt(item.dataset.page)));
+});
+
+// Page dots
+document.querySelectorAll('.page-dot').forEach(dot => {
+  dot.addEventListener('click', () => goToPage(parseInt(dot.dataset.page)));
+});
+
+// Range buttons (shared state, both groups affect currentHours)
+document.querySelectorAll('.range-btns button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const group = btn.closest('[data-range-group]');
+    // Toggle within the same group
+    group.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const prevHours = currentHours;
+    currentHours = parseInt(btn.dataset.hours);
+    // Reload data if hours changed
+    if (prevHours !== currentHours) {
+      loadHot();
+      loadTimeline();
+    }
+  });
+});
+
+// ─── Swipe support ───
+let touchStartX = 0;
+let touchEndX = 0;
+
+document.addEventListener('touchstart', e => {
+  // Only capture if tap starts outside the drawer
+  if (document.getElementById('drawer').classList.contains('open')) return;
+  touchStartX = e.changedTouches[0].screenX;
+}, { passive: true });
+
+document.addEventListener('touchend', e => {
+  if (document.getElementById('drawer').classList.contains('open')) return;
+  touchEndX = e.changedTouches[0].screenX;
+  const diff = touchStartX - touchEndX;
+  const abs = Math.abs(diff);
+  if (abs < 50) return; // too short
+
+  if (diff > 0 && currentPage < pages.length - 1) {
+    // swipe left → next page
+    goToPage(currentPage + 1);
+  } else if (diff < 0 && currentPage > 0) {
+    // swipe right → prev page
+    goToPage(currentPage - 1);
+  }
+}, { passive: true });
+
+// ─── Init ───
+loadAll();
+
+document.getElementById('hotList').addEventListener('click', function(e) {
+  var card = e.target.closest('.stock-card');
+  if (card && card.dataset.url) {
+    window.open(card.dataset.url, '_blank');
+  }
+});
+</script>
+</body>
+</html>

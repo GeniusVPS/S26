@@ -480,5 +480,18 @@ def api_sentiment():
         "mood": mood,
         "stocks": stocks
     })
+@app.route("/api/ai_comments")
+def api_ai_comments():
+    """Return AI-generated stock comments"""
+    import os
+    cache_path = os.path.expanduser("~/stock-system/ai_comments_cache.json")
+    try:
+        with open(cache_path) as f:
+            data = json.load(f)
+    except:
+        data = {"comments": {}, "generated_at": "-"}
+    return jsonify(data)
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8501, debug=False)
